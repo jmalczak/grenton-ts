@@ -1,15 +1,16 @@
 {
   "scripts": {
-    "build": "tsc -p src/tsconfig.json",
+    "build": "tsc -p src/tsconfig.json && rm -rf dist && mkdir -p dist && (cd src && find . -name '*.ts' -exec cp --parents {} ../dist/ \\;)",
     "watch": "tsc -p src/tsconfig.json --watch"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
   },
-  "name": "grenton-api",
+  "files": [ "dist", "LICENSE", "README.md" ],
+  "name": "grenton-ts-api",
   "version": "1.0.0",
-  "main": "index.js",
-  "author": "",
+  "main": "index.ts",
+  "author": "Rajmund Paczkowski",
   "license": "MIT",
-  "description": ""
+  "description": "TypeScript API library providing type-safe wrappers for Grenton smart home hardware modules"
 }
