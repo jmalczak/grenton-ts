@@ -1,7 +1,7 @@
 {
   "scripts": {
-    "build": "tsc",
-    "watch": "tsc --watch"
+    "build": "tsc -p src/tsconfig.json",
+    "watch": "tsc -p src/tsconfig.json --watch"
   },
   "devDependencies": {
     "typescript": "^5.9.3"
