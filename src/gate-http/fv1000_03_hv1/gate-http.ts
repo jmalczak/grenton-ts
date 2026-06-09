@@ -1,7 +1,7 @@
-// Created from: packages/grenton-api/interfaces/clu_GATE_HTTP_ft00000003_fv000003e8_ht00000012_hv00000001.xml, object name="CLU_GATE_HTTP"
+// Created from: src/interfaces/clu_GATE_HTTP_ft00000003_fv000003e8_ht00000012_hv00000001.xml, object name="CLU_GATE_HTTP"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnInit = 0,
@@ -51,14 +51,14 @@ interface ICluGateHttp {
     setClientReportInterval: (clientReportInterval: number) => void
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS: (iP: string) => void
+    setPrimaryDNS: (ip: string) => void
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS: (iP: string) => void
+    setSecondaryDNS: (ip: string) => void
     /** Czas pracy urządzenia od ostatniego resetu (w sekundach) */
     readonly uptime: number
     /** Zwraca aktualny uniksowy znacznik czasu */
@@ -115,17 +115,17 @@ class CluGateHttp implements ICluGateHttp {
     }
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS(iP: string): void {
-        this.raw.set(PropertyType.PrimaryDNS, iP);
+    setPrimaryDNS(ip: string): void {
+        this.raw.set(PropertyType.PrimaryDNS, ip);
     }
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS(iP: string): void {
-        this.raw.set(PropertyType.SecondaryDNS, iP);
+    setSecondaryDNS(ip: string): void {
+        this.raw.set(PropertyType.SecondaryDNS, ip);
     }
     /**
      * Czas pracy urządzenia od ostatniego resetu (w sekundach)
@@ -233,25 +233,25 @@ class CluGateHttpRemote implements ICluGateHttp {
     }
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS(iP: string): void {
+    setPrimaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.PrimaryDNS)
-            .addParameter(iP)
+            .addParameter(ip)
             .build();
         this.gate.runScript(cmd!);
     }
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS(iP: string): void {
+    setSecondaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.SecondaryDNS)
-            .addParameter(iP)
+            .addParameter(ip)
             .build();
         this.gate.runScript(cmd!);
     }

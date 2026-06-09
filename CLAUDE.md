@@ -17,6 +17,19 @@ This is a TypeScript API library for Grenton smart home hardware modules. The co
 
 - Each hardware module has its own directory taken from <module /> node and @name attribute.
 - Inside each module directory, subfolders use the naming convention `fvXX_YY`.
+- Files clu_GATE_ALARM_*.xml
+   - classes created from <clu /> node go to src/gate-alarm directory
+   - src/gate-alarm contains subfolders with versions
+   - each version folder contains TS classes
+   - file with TS classes is named gate-alarm.ts
+   - apply same rules for all <clu className="GATE"/> nodes
+- Files clu_zwave_2_*.xml
+   - classes created from <clu /> node go to src/clu-zwave-2 directory
+   - src/clu-zwave-2 contains subfolders with versions
+   - each version folder contains TS classes
+   - file with TS classes is named clu-zwave-2.ts
+   - apply same rules for all clu_zwave_*.xml
+
 - All GATE class (@className="GATE") files go to gate folder
 - All non GATE class files go to clu folder
 

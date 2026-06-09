@@ -1,7 +1,7 @@
-// Created from: packages/grenton-api/interfaces/clu_GATE_HTTP_ft00000003_fv00000456_ht00000012_hv00000002.xml, object name="CLU_GATE_HTTP"
+// Created from: src/interfaces/clu_WIFI_RL_PLUS_ft00000001_fv0000044c_ht00000022_hv00000001.xml, object name="CLU_WIFI_RL_PLUS"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnInit = 0,
@@ -10,6 +10,8 @@ enum EventType {
 enum PropertyType {
     Uptime = 0,
     ClientReportInterval = 1,
+    PrimaryDNS = 2,
+    SecondaryDNS = 3,
     Date = 5,
     Time = 6,
     LocalTime = 13,
@@ -20,14 +22,14 @@ enum PropertyType {
     CloudConnection = 19,
     NTPTimeout = 20,
     UseNTP = 21,
-    PrimaryDNS = 2,
-    SecondaryDNS = 3,
+    RSSI = 22,
 }
 
 enum MethodType {
     SetDateTime = 2,
     StartConsole = 7,
     StartConsoleOnReboot = 8,
+    FactoryReset = 9,
 }
 
 enum TimeZoneType {
@@ -42,7 +44,7 @@ enum TimeZoneType {
     AustraliaSydney = 8,
     AustraliaPerth = 9,
     AustraliaBrisbane = 10,
-    NewZelandAuckland = 11,
+    NewZealandAuckland = 11,
     USAHawaii = 12,
     USAAlaska = 13,
     USACentralTime = 14,
@@ -55,14 +57,14 @@ enum TimeZoneType {
     PacificTime = 21,
 }
 
-declare class CluGateHttpRaw {
+declare class CluWifiRlPlusRaw {
     add_event(event: EventType, callback: () => void): void;
     get(property: PropertyType): any;
     set(property: PropertyType, value: any): void;
     execute(method: MethodType, ...args: any[]): any;
 }
 
-interface ICluGateHttp {
+interface ICluWifiRlPlus {
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
@@ -70,13 +72,15 @@ interface ICluGateHttp {
     addOnInit: (callback: () => void) => void
     /**
      * Ustawia datę i czas
-     * @param {number} localTimestamp
+     * @param {number} unixTimestamp
      */
-    setDateTime: (localTimestamp: number) => void
+    setDateTime: (unixTimestamp: number) => void
     /** Uruchamia konsolę Lua */
     startConsole: () => void
     /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
     startConsoleOnReboot: () => void
+    /** Reset urządzenia do ustawień fabrycznych */
+    factoryReset: () => void
     /**
      * Ustawia okres raportowania o zmianach cech
      * @param {number} clientReportInterval
@@ -84,18 +88,22 @@ interface ICluGateHttp {
     setClientReportInterval: (clientReportInterval: number) => void
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS: (iP: string) => void
+    setPrimaryDNS: (ip: string) => void
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS: (iP: string) => void
+    setSecondaryDNS: (ip: string) => void
     /** Czas pracy urządzenia od ostatniego resetu (w sekundach) */
     readonly uptime: number
     /** Okres raportowania o zmianach cech */
     clientReportInterval: number
+    /** Preferowany serwer DNS */
+    primaryDNS: string
+    /** Alternatywny serwer DNS */
+    secondaryDNS: string
     /** Zwraca aktualną datę */
     readonly date: string
     /** Zwraca aktualny czas (hh:mm:ss) */
@@ -106,33 +114,29 @@ interface ICluGateHttp {
     timeZone: TimeZoneType
     /** Zwraca aktualny uniksowy znacznik czasu */
     readonly unixTime: number
-    /** Wersja oprogramowania Gate */
+    /** Wersja oprogramowania modułu WiFi */
     readonly firmwareVersion: string
-    /** Określa czy Gate łączy się do chmury */
+    /** Określa czy moduł WiFi łączy się do chmury */
     useCloud: boolean
-    /** Określa status połączenia Gate z chmurą */
+    /** Określa status połączenia modułu WiFi z chmurą */
     readonly cloudConnection: boolean
     /** Timeout NTP */
-    nTPTimeout: number
-    /** Określa czy Gate używa NTP */
-    useNTP: boolean
-    /** Preferowany serwer DNS */
-    primaryDNS: string
-    /** Alternatywny serwer DNS */
-    secondaryDNS: string
+    ntpTimeout: number
+    /** Określa czy moduł WiFi używa NTP */
+    useNtp: boolean
+    /** Wskaźnik odbieranego sygnału - moc sygnału */
+    readonly rssi: number
 }
 
-class CluGateHttp implements ICluGateHttp {
+class CluWifiRlPlus implements ICluWifiRlPlus {
     private onInitCallbacks: Array<() => void> = [];
 
-    constructor(private raw: CluGateHttpRaw) {
+    constructor(private raw: CluWifiRlPlusRaw) {
         this.raw.add_event(EventType.OnInit, () => {
-            this.onInitCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onInitCallbacks.forEach(callback => { callback(); });
         });
-
     }
+
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
@@ -142,10 +146,10 @@ class CluGateHttp implements ICluGateHttp {
     }
     /**
      * Ustawia datę i czas
-     * @param {number} localTimestamp
+     * @param {number} unixTimestamp
      */
-    setDateTime(localTimestamp: number): void {
-        this.raw.execute(MethodType.SetDateTime, localTimestamp);
+    setDateTime(unixTimestamp: number): void {
+        this.raw.execute(MethodType.SetDateTime, unixTimestamp);
     }
     /** Uruchamia konsolę Lua */
     startConsole(): void {
@@ -154,6 +158,10 @@ class CluGateHttp implements ICluGateHttp {
     /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
     startConsoleOnReboot(): void {
         this.raw.execute(MethodType.StartConsoleOnReboot);
+    }
+    /** Reset urządzenia do ustawień fabrycznych */
+    factoryReset(): void {
+        this.raw.execute(MethodType.FactoryReset);
     }
     /**
      * Ustawia okres raportowania o zmianach cech
@@ -164,17 +172,17 @@ class CluGateHttp implements ICluGateHttp {
     }
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS(iP: string): void {
-        this.raw.set(PropertyType.PrimaryDNS, iP);
+    setPrimaryDNS(ip: string): void {
+        this.raw.set(PropertyType.PrimaryDNS, ip);
     }
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS(iP: string): void {
-        this.raw.set(PropertyType.SecondaryDNS, iP);
+    setSecondaryDNS(ip: string): void {
+        this.raw.set(PropertyType.SecondaryDNS, ip);
     }
     /**
      * Czas pracy urządzenia od ostatniego resetu (w sekundach)
@@ -192,6 +200,26 @@ class CluGateHttp implements ICluGateHttp {
     }
     set clientReportInterval(value: number) {
         this.raw.set(PropertyType.ClientReportInterval, value);
+    }
+    /**
+     * Preferowany serwer DNS
+     * @returns {string}
+     */
+    get primaryDNS(): string {
+        return this.raw.get(PropertyType.PrimaryDNS);
+    }
+    set primaryDNS(value: string) {
+        this.raw.set(PropertyType.PrimaryDNS, value);
+    }
+    /**
+     * Alternatywny serwer DNS
+     * @returns {string}
+     */
+    get secondaryDNS(): string {
+        return this.raw.get(PropertyType.SecondaryDNS);
+    }
+    set secondaryDNS(value: string) {
+        this.raw.set(PropertyType.SecondaryDNS, value);
     }
     /**
      * Zwraca aktualną datę
@@ -232,14 +260,14 @@ class CluGateHttp implements ICluGateHttp {
         return this.raw.get(PropertyType.UnixTime);
     }
     /**
-     * Wersja oprogramowania Gate
+     * Wersja oprogramowania modułu WiFi
      * @returns {string}
      */
     get firmwareVersion(): string {
         return this.raw.get(PropertyType.FirmwareVersion);
     }
     /**
-     * Określa czy Gate łączy się do chmury
+     * Określa czy moduł WiFi łączy się do chmury
      * @returns {boolean}
      */
     get useCloud(): boolean {
@@ -249,7 +277,7 @@ class CluGateHttp implements ICluGateHttp {
         this.raw.set(PropertyType.UseCloud, value ? 1 : 0);
     }
     /**
-     * Określa status połączenia Gate z chmurą
+     * Określa status połączenia modułu WiFi z chmurą
      * @returns {boolean}
      */
     get cloudConnection(): boolean {
@@ -259,48 +287,35 @@ class CluGateHttp implements ICluGateHttp {
      * Timeout NTP
      * @returns {number}
      */
-    get nTPTimeout(): number {
+    get ntpTimeout(): number {
         return this.raw.get(PropertyType.NTPTimeout);
     }
-    set nTPTimeout(value: number) {
+    set ntpTimeout(value: number) {
         this.raw.set(PropertyType.NTPTimeout, value);
     }
     /**
-     * Określa czy Gate używa NTP
+     * Określa czy moduł WiFi używa NTP
      * @returns {boolean}
      */
-    get useNTP(): boolean {
+    get useNtp(): boolean {
         return this.raw.get(PropertyType.UseNTP) === 1;
     }
-    set useNTP(value: boolean) {
+    set useNtp(value: boolean) {
         this.raw.set(PropertyType.UseNTP, value ? 1 : 0);
     }
     /**
-     * Preferowany serwer DNS
-     * @returns {string}
+     * Wskaźnik odbieranego sygnału - moc sygnału
+     * @returns {number}
      */
-    get primaryDNS(): string {
-        return this.raw.get(PropertyType.PrimaryDNS);
-    }
-    set primaryDNS(value: string) {
-        this.raw.set(PropertyType.PrimaryDNS, value);
-    }
-    /**
-     * Alternatywny serwer DNS
-     * @returns {string}
-     */
-    get secondaryDNS(): string {
-        return this.raw.get(PropertyType.SecondaryDNS);
-    }
-    set secondaryDNS(value: string) {
-        this.raw.set(PropertyType.SecondaryDNS, value);
+    get rssi(): number {
+        return this.raw.get(PropertyType.RSSI);
     }
 }
 
-class CluGateHttpRemote implements ICluGateHttp {
+class CluWifiRlPlusRemote implements ICluWifiRlPlus {
     constructor(private objectName: string, private gate: RemoteGate) {
-
     }
+
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
@@ -310,13 +325,13 @@ class CluGateHttpRemote implements ICluGateHttp {
     }
     /**
      * Ustawia datę i czas
-     * @param {number} localTimestamp
+     * @param {number} unixTimestamp
      */
-    setDateTime(localTimestamp: number): void {
+    setDateTime(unixTimestamp: number): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .execute()
             .addParameter(MethodType.SetDateTime)
-            .addParameter(localTimestamp)
+            .addParameter(unixTimestamp)
             .build();
         this.gate.runScript(cmd!);
     }
@@ -336,6 +351,14 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         this.gate.runScript(cmd!);
     }
+    /** Reset urządzenia do ustawień fabrycznych */
+    factoryReset(): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .execute()
+            .addParameter(MethodType.FactoryReset)
+            .build();
+        this.gate.runScript(cmd!);
+    }
     /**
      * Ustawia okres raportowania o zmianach cech
      * @param {number} clientReportInterval
@@ -350,25 +373,25 @@ class CluGateHttpRemote implements ICluGateHttp {
     }
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS(iP: string): void {
+    setPrimaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.PrimaryDNS)
-            .addParameter(iP)
+            .addParameter(ip)
             .build();
         this.gate.runScript(cmd!);
     }
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS(iP: string): void {
+    setSecondaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.SecondaryDNS)
-            .addParameter(iP)
+            .addParameter(ip)
             .build();
         this.gate.runScript(cmd!);
     }
@@ -398,6 +421,44 @@ class CluGateHttpRemote implements ICluGateHttp {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.ClientReportInterval)
+            .addParameter(value)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Preferowany serwer DNS
+     * @returns {string}
+     */
+    get primaryDNS(): string {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.PrimaryDNS)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+    set primaryDNS(value: string) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.PrimaryDNS)
+            .addParameter(value)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Alternatywny serwer DNS
+     * @returns {string}
+     */
+    get secondaryDNS(): string {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.SecondaryDNS)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+    set secondaryDNS(value: string) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.SecondaryDNS)
             .addParameter(value)
             .build();
         this.gate.runScript(cmd!);
@@ -466,7 +527,7 @@ class CluGateHttpRemote implements ICluGateHttp {
         return this.gate.runScript(cmd!);
     }
     /**
-     * Wersja oprogramowania Gate
+     * Wersja oprogramowania modułu WiFi
      * @returns {string}
      */
     get firmwareVersion(): string {
@@ -477,7 +538,7 @@ class CluGateHttpRemote implements ICluGateHttp {
         return this.gate.runScript(cmd!);
     }
     /**
-     * Określa czy Gate łączy się do chmury
+     * Określa czy moduł WiFi łączy się do chmury
      * @returns {boolean}
      */
     get useCloud(): boolean {
@@ -496,7 +557,7 @@ class CluGateHttpRemote implements ICluGateHttp {
         this.gate.runScript(cmd!);
     }
     /**
-     * Określa status połączenia Gate z chmurą
+     * Określa status połączenia modułu WiFi z chmurą
      * @returns {boolean}
      */
     get cloudConnection(): boolean {
@@ -510,14 +571,14 @@ class CluGateHttpRemote implements ICluGateHttp {
      * Timeout NTP
      * @returns {number}
      */
-    get nTPTimeout(): number {
+    get ntpTimeout(): number {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .get()
             .addParameter(PropertyType.NTPTimeout)
             .build();
         return this.gate.runScript(cmd!);
     }
-    set nTPTimeout(value: number) {
+    set ntpTimeout(value: number) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.NTPTimeout)
@@ -526,17 +587,17 @@ class CluGateHttpRemote implements ICluGateHttp {
         this.gate.runScript(cmd!);
     }
     /**
-     * Określa czy Gate używa NTP
+     * Określa czy moduł WiFi używa NTP
      * @returns {boolean}
      */
-    get useNTP(): boolean {
+    get useNtp(): boolean {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .get()
             .addParameter(PropertyType.UseNTP)
             .build();
         return this.gate.runScript(cmd!) === 1;
     }
-    set useNTP(value: boolean) {
+    set useNtp(value: boolean) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.UseNTP)
@@ -545,45 +606,16 @@ class CluGateHttpRemote implements ICluGateHttp {
         this.gate.runScript(cmd!);
     }
     /**
-     * Preferowany serwer DNS
-     * @returns {string}
+     * Wskaźnik odbieranego sygnału - moc sygnału
+     * @returns {number}
      */
-    get primaryDNS(): string {
+    get rssi(): number {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .get()
-            .addParameter(PropertyType.PrimaryDNS)
+            .addParameter(PropertyType.RSSI)
             .build();
         return this.gate.runScript(cmd!);
-    }
-    set primaryDNS(value: string) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.PrimaryDNS)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /**
-     * Alternatywny serwer DNS
-     * @returns {string}
-     */
-    get secondaryDNS(): string {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.SecondaryDNS)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    set secondaryDNS(value: string) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.SecondaryDNS)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
     }
 }
 
-export {
-    CluGateHttp, CluGateHttpRaw, CluGateHttpRemote, TimeZoneType
-}
+export { CluWifiRlPlus, CluWifiRlPlusRaw, CluWifiRlPlusRemote, TimeZoneType }

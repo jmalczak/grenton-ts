@@ -1,7 +1,7 @@
-// Created from: packages/grenton-api/interfaces/clu_GATE_HTTP_ft00000003_fv00000514_ht00000012_hv00000002.xml, object name="CLU_GATE_HTTP"
+// Created from: src/interfaces/clu_GATE_ALARM_ft00000002_fv00000456_ht00000012_hv00000002.xml, object name="CLU_GATE_ALARM"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnInit = 0,
@@ -10,6 +10,8 @@ enum EventType {
 enum PropertyType {
     Uptime = 0,
     ClientReportInterval = 1,
+    PrimaryDNS = 2,
+    SecondaryDNS = 3,
     Date = 5,
     Time = 6,
     LocalTime = 13,
@@ -20,8 +22,6 @@ enum PropertyType {
     CloudConnection = 19,
     NTPTimeout = 20,
     UseNTP = 21,
-    PrimaryDNS = 2,
-    SecondaryDNS = 3,
 }
 
 enum MethodType {
@@ -42,7 +42,7 @@ enum TimeZoneType {
     AustraliaSydney = 8,
     AustraliaPerth = 9,
     AustraliaBrisbane = 10,
-    NewZelandAuckland = 11,
+    NewZealandAuckland = 11,
     USAHawaii = 12,
     USAAlaska = 13,
     USACentralTime = 14,
@@ -55,47 +55,42 @@ enum TimeZoneType {
     PacificTime = 21,
 }
 
-declare class CluGateHttpRaw {
+declare class CluGateAlarmRaw {
     add_event(event: EventType, callback: () => void): void;
     get(property: PropertyType): any;
     set(property: PropertyType, value: any): void;
     execute(method: MethodType, ...args: any[]): any;
 }
 
-interface ICluGateHttp {
+interface ICluGateAlarm {
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
      */
     addOnInit: (callback: () => void) => void
-    /**
-     * Ustawia datę i czas
-     * @param {number} localTimestamp
-     */
-    setDateTime: (localTimestamp: number) => void
-    /** Uruchamia konsolę Lua */
-    startConsole: () => void
-    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
-    startConsoleOnReboot: () => void
+    /** Czas pracy urządzenia od ostatniego resetu (w sekundach) */
+    readonly uptime: number
+    /** Okres raportowania o zmianach cech */
+    clientReportInterval: number
     /**
      * Ustawia okres raportowania o zmianach cech
      * @param {number} clientReportInterval
      */
     setClientReportInterval: (clientReportInterval: number) => void
+    /** Preferowany serwer DNS */
+    primaryDNS: string
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS: (iP: string) => void
+    setPrimaryDNS: (ip: string) => void
+    /** Alternatywny serwer DNS */
+    secondaryDNS: string
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS: (iP: string) => void
-    /** Czas pracy urządzenia od ostatniego resetu (w sekundach) */
-    readonly uptime: number
-    /** Okres raportowania o zmianach cech */
-    clientReportInterval: number
+    setSecondaryDNS: (ip: string) => void
     /** Zwraca aktualną datę */
     readonly date: string
     /** Zwraca aktualny czas (hh:mm:ss) */
@@ -113,68 +108,37 @@ interface ICluGateHttp {
     /** Określa status połączenia Gate z chmurą */
     readonly cloudConnection: boolean
     /** Timeout NTP */
-    nTPTimeout: number
+    ntpTimeout: number
     /** Określa czy Gate używa NTP */
     useNTP: boolean
-    /** Preferowany serwer DNS */
-    primaryDNS: string
-    /** Alternatywny serwer DNS */
-    secondaryDNS: string
+    /**
+     * Ustawia datę i czas
+     * @param {number} localTimestamp
+     */
+    setDateTime: (localTimestamp: number) => void
+    /** Uruchamia konsolę Lua */
+    startConsole: () => void
+    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
+    startConsoleOnReboot: () => void
 }
 
-class CluGateHttp implements ICluGateHttp {
+class CluGateAlarm implements ICluGateAlarm {
     private onInitCallbacks: Array<() => void> = [];
 
-    constructor(private raw: CluGateHttpRaw) {
+    constructor(private raw: CluGateAlarmRaw) {
         this.raw.add_event(EventType.OnInit, () => {
             this.onInitCallbacks.forEach(callback => {
                 callback();
             });
         });
-
     }
+
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
      */
     addOnInit(callback: () => void): void {
         this.onInitCallbacks.push(callback);
-    }
-    /**
-     * Ustawia datę i czas
-     * @param {number} localTimestamp
-     */
-    setDateTime(localTimestamp: number): void {
-        this.raw.execute(MethodType.SetDateTime, localTimestamp);
-    }
-    /** Uruchamia konsolę Lua */
-    startConsole(): void {
-        this.raw.execute(MethodType.StartConsole);
-    }
-    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
-    startConsoleOnReboot(): void {
-        this.raw.execute(MethodType.StartConsoleOnReboot);
-    }
-    /**
-     * Ustawia okres raportowania o zmianach cech
-     * @param {number} clientReportInterval
-     */
-    setClientReportInterval(clientReportInterval: number): void {
-        this.raw.set(PropertyType.ClientReportInterval, clientReportInterval);
-    }
-    /**
-     * Ustawia cechę PrimaryDNS
-     * @param {string} iP
-     */
-    setPrimaryDNS(iP: string): void {
-        this.raw.set(PropertyType.PrimaryDNS, iP);
-    }
-    /**
-     * Ustawia cechę SecondaryDNS
-     * @param {string} iP
-     */
-    setSecondaryDNS(iP: string): void {
-        this.raw.set(PropertyType.SecondaryDNS, iP);
     }
     /**
      * Czas pracy urządzenia od ostatniego resetu (w sekundach)
@@ -192,6 +156,47 @@ class CluGateHttp implements ICluGateHttp {
     }
     set clientReportInterval(value: number) {
         this.raw.set(PropertyType.ClientReportInterval, value);
+    }
+    /**
+     * Ustawia okres raportowania o zmianach cech
+     * @param {number} clientReportInterval
+     */
+    setClientReportInterval(clientReportInterval: number): void {
+        this.raw.set(PropertyType.ClientReportInterval, clientReportInterval);
+    }
+    /**
+     * Preferowany serwer DNS
+     * @returns {string}
+     */
+    get primaryDNS(): string {
+        return this.raw.get(PropertyType.PrimaryDNS);
+    }
+    set primaryDNS(value: string) {
+        this.raw.set(PropertyType.PrimaryDNS, value);
+    }
+    /**
+     * Ustawia cechę PrimaryDNS
+     * @param {string} ip
+     */
+    setPrimaryDNS(ip: string): void {
+        this.raw.set(PropertyType.PrimaryDNS, ip);
+    }
+    /**
+     * Alternatywny serwer DNS
+     * @returns {string}
+     */
+    get secondaryDNS(): string {
+        return this.raw.get(PropertyType.SecondaryDNS);
+    }
+    set secondaryDNS(value: string) {
+        this.raw.set(PropertyType.SecondaryDNS, value);
+    }
+    /**
+     * Ustawia cechę SecondaryDNS
+     * @param {string} ip
+     */
+    setSecondaryDNS(ip: string): void {
+        this.raw.set(PropertyType.SecondaryDNS, ip);
     }
     /**
      * Zwraca aktualną datę
@@ -259,10 +264,10 @@ class CluGateHttp implements ICluGateHttp {
      * Timeout NTP
      * @returns {number}
      */
-    get nTPTimeout(): number {
+    get ntpTimeout(): number {
         return this.raw.get(PropertyType.NTPTimeout);
     }
-    set nTPTimeout(value: number) {
+    set ntpTimeout(value: number) {
         this.raw.set(PropertyType.NTPTimeout, value);
     }
     /**
@@ -276,31 +281,26 @@ class CluGateHttp implements ICluGateHttp {
         this.raw.set(PropertyType.UseNTP, value ? 1 : 0);
     }
     /**
-     * Preferowany serwer DNS
-     * @returns {string}
+     * Ustawia datę i czas
+     * @param {number} localTimestamp
      */
-    get primaryDNS(): string {
-        return this.raw.get(PropertyType.PrimaryDNS);
+    setDateTime(localTimestamp: number): void {
+        this.raw.execute(MethodType.SetDateTime, localTimestamp);
     }
-    set primaryDNS(value: string) {
-        this.raw.set(PropertyType.PrimaryDNS, value);
+    /** Uruchamia konsolę Lua */
+    startConsole(): void {
+        this.raw.execute(MethodType.StartConsole);
     }
-    /**
-     * Alternatywny serwer DNS
-     * @returns {string}
-     */
-    get secondaryDNS(): string {
-        return this.raw.get(PropertyType.SecondaryDNS);
-    }
-    set secondaryDNS(value: string) {
-        this.raw.set(PropertyType.SecondaryDNS, value);
+    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
+    startConsoleOnReboot(): void {
+        this.raw.execute(MethodType.StartConsoleOnReboot);
     }
 }
 
-class CluGateHttpRemote implements ICluGateHttp {
+class CluGateAlarmRemote implements ICluGateAlarm {
     constructor(private objectName: string, private gate: RemoteGate) {
-
     }
+
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
@@ -308,34 +308,40 @@ class CluGateHttpRemote implements ICluGateHttp {
     addOnInit(_callback: () => void): void {
         // Remote events are not supported
     }
+
     /**
-     * Ustawia datę i czas
-     * @param {number} localTimestamp
+     * Czas pracy urządzenia od ostatniego resetu (w sekundach)
+     * @returns {number}
      */
-    setDateTime(localTimestamp: number): void {
+    get uptime(): number {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .execute()
-            .addParameter(MethodType.SetDateTime)
-            .addParameter(localTimestamp)
+            .get()
+            .addParameter(PropertyType.Uptime)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Okres raportowania o zmianach cech
+     * @returns {number}
+     */
+    get clientReportInterval(): number {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.ClientReportInterval)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    set clientReportInterval(value: number) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.ClientReportInterval)
+            .addParameter(value)
             .build();
         this.gate.runScript(cmd!);
     }
-    /** Uruchamia konsolę Lua */
-    startConsole(): void {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .execute()
-            .addParameter(MethodType.StartConsole)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
-    startConsoleOnReboot(): void {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .execute()
-            .addParameter(MethodType.StartConsoleOnReboot)
-            .build();
-        this.gate.runScript(cmd!);
-    }
+
     /**
      * Ustawia okres raportowania o zmianach cech
      * @param {number} clientReportInterval
@@ -348,202 +354,7 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         this.gate.runScript(cmd!);
     }
-    /**
-     * Ustawia cechę PrimaryDNS
-     * @param {string} iP
-     */
-    setPrimaryDNS(iP: string): void {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.PrimaryDNS)
-            .addParameter(iP)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /**
-     * Ustawia cechę SecondaryDNS
-     * @param {string} iP
-     */
-    setSecondaryDNS(iP: string): void {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.SecondaryDNS)
-            .addParameter(iP)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /**
-     * Czas pracy urządzenia od ostatniego resetu (w sekundach)
-     * @returns {number}
-     */
-    get uptime(): number {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.Uptime)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    /**
-     * Okres raportowania o zmianach cech
-     * @returns {number}
-     */
-    get clientReportInterval(): number {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.ClientReportInterval)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    set clientReportInterval(value: number) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.ClientReportInterval)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /**
-     * Zwraca aktualną datę
-     * @returns {string}
-     */
-    get date(): string {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.Date)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    /**
-     * Zwraca aktualny czas (hh:mm:ss)
-     * @returns {string}
-     */
-    get time(): string {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.Time)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    /**
-     * Zwraca aktualny znacznik czasu
-     * @returns {number}
-     */
-    get localTime(): number {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.LocalTime)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    /**
-     * Strefa czasowa
-     * @returns {TimeZoneType}
-     */
-    get timeZone(): TimeZoneType {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.TimeZone)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    set timeZone(value: TimeZoneType) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.TimeZone)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /**
-     * Zwraca aktualny uniksowy znacznik czasu
-     * @returns {number}
-     */
-    get unixTime(): number {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.UnixTime)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    /**
-     * Wersja oprogramowania Gate
-     * @returns {string}
-     */
-    get firmwareVersion(): string {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.FirmwareVersion)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    /**
-     * Określa czy Gate łączy się do chmury
-     * @returns {boolean}
-     */
-    get useCloud(): boolean {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.UseCloud)
-            .build();
-        return this.gate.runScript(cmd!) === 1;
-    }
-    set useCloud(value: boolean) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.UseCloud)
-            .addParameter(value ? 1 : 0)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /**
-     * Określa status połączenia Gate z chmurą
-     * @returns {boolean}
-     */
-    get cloudConnection(): boolean {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.CloudConnection)
-            .build();
-        return this.gate.runScript(cmd!) === 1;
-    }
-    /**
-     * Timeout NTP
-     * @returns {number}
-     */
-    get nTPTimeout(): number {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.NTPTimeout)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    set nTPTimeout(value: number) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.NTPTimeout)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /**
-     * Określa czy Gate używa NTP
-     * @returns {boolean}
-     */
-    get useNTP(): boolean {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.UseNTP)
-            .build();
-        return this.gate.runScript(cmd!) === 1;
-    }
-    set useNTP(value: boolean) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.UseNTP)
-            .addParameter(value ? 1 : 0)
-            .build();
-        this.gate.runScript(cmd!);
-    }
+
     /**
      * Preferowany serwer DNS
      * @returns {string}
@@ -555,6 +366,7 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         return this.gate.runScript(cmd!);
     }
+
     set primaryDNS(value: string) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -563,6 +375,20 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         this.gate.runScript(cmd!);
     }
+
+    /**
+     * Ustawia cechę PrimaryDNS
+     * @param {string} ip
+     */
+    setPrimaryDNS(ip: string): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.PrimaryDNS)
+            .addParameter(ip)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
     /**
      * Alternatywny serwer DNS
      * @returns {string}
@@ -574,6 +400,7 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         return this.gate.runScript(cmd!);
     }
+
     set secondaryDNS(value: string) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -582,8 +409,206 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         this.gate.runScript(cmd!);
     }
+
+    /**
+     * Ustawia cechę SecondaryDNS
+     * @param {string} ip
+     */
+    setSecondaryDNS(ip: string): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.SecondaryDNS)
+            .addParameter(ip)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Zwraca aktualną datę
+     * @returns {string}
+     */
+    get date(): string {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.Date)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Zwraca aktualny czas (hh:mm:ss)
+     * @returns {string}
+     */
+    get time(): string {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.Time)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Zwraca aktualny znacznik czasu
+     * @returns {number}
+     */
+    get localTime(): number {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.LocalTime)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Strefa czasowa
+     * @returns {TimeZoneType}
+     */
+    get timeZone(): TimeZoneType {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.TimeZone)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    set timeZone(value: TimeZoneType) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.TimeZone)
+            .addParameter(value)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Zwraca aktualny uniksowy znacznik czasu
+     * @returns {number}
+     */
+    get unixTime(): number {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.UnixTime)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Wersja oprogramowania Gate
+     * @returns {string}
+     */
+    get firmwareVersion(): string {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.FirmwareVersion)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Określa czy Gate łączy się do chmury
+     * @returns {boolean}
+     */
+    get useCloud(): boolean {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.UseCloud)
+            .build();
+        return this.gate.runScript(cmd!) === 1;
+    }
+
+    set useCloud(value: boolean) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.UseCloud)
+            .addParameter(value ? 1 : 0)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Określa status połączenia Gate z chmurą
+     * @returns {boolean}
+     */
+    get cloudConnection(): boolean {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.CloudConnection)
+            .build();
+        return this.gate.runScript(cmd!) === 1;
+    }
+
+    /**
+     * Timeout NTP
+     * @returns {number}
+     */
+    get ntpTimeout(): number {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.NTPTimeout)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+
+    set ntpTimeout(value: number) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.NTPTimeout)
+            .addParameter(value)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Określa czy Gate używa NTP
+     * @returns {boolean}
+     */
+    get useNTP(): boolean {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.UseNTP)
+            .build();
+        return this.gate.runScript(cmd!) === 1;
+    }
+
+    set useNTP(value: boolean) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.UseNTP)
+            .addParameter(value ? 1 : 0)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
+    /**
+     * Ustawia datę i czas
+     * @param {number} localTimestamp
+     */
+    setDateTime(localTimestamp: number): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .execute()
+            .addParameter(MethodType.SetDateTime)
+            .addParameter(localTimestamp)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
+    /** Uruchamia konsolę Lua */
+    startConsole(): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .execute()
+            .addParameter(MethodType.StartConsole)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+
+    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
+    startConsoleOnReboot(): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .execute()
+            .addParameter(MethodType.StartConsoleOnReboot)
+            .build();
+        this.gate.runScript(cmd!);
+    }
 }
 
-export {
-    CluGateHttp, CluGateHttpRaw, CluGateHttpRemote, TimeZoneType
-}
+export { CluGateAlarm, CluGateAlarmRaw, CluGateAlarmRemote, TimeZoneType }

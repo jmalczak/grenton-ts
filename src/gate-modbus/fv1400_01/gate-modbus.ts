@@ -1,15 +1,17 @@
-// Created from: packages/grenton-api/interfaces/clu_GATE_HTTP_ft00000003_fv0000044c_ht00000012_hv00000002.xml, object name="CLU_GATE_HTTP"
+// Created from: src/interfaces/clu_GATE_MODBUS_ft00000001_fv00000578_ht00000012_hv00000002.xml, object name="CLU_GATE_MODBUS"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
-    OnInit = 0,
+    OnInit = 1,
 }
 
 enum PropertyType {
     Uptime = 0,
     ClientReportInterval = 1,
+    PrimaryDNS = 2,
+    SecondaryDNS = 3,
     Date = 5,
     Time = 6,
     LocalTime = 13,
@@ -20,14 +22,15 @@ enum PropertyType {
     CloudConnection = 19,
     NTPTimeout = 20,
     UseNTP = 21,
-    PrimaryDNS = 2,
-    SecondaryDNS = 3,
+    TelnetLogLevel = 23,
+    TelnetBusLogLevel = 24,
+    OverloadDetection = 25,
+    ResetReason = 26,
+    ModbusMasterFrameSpace = 27,
 }
 
 enum MethodType {
     SetDateTime = 2,
-    StartConsole = 7,
-    StartConsoleOnReboot = 8,
 }
 
 enum TimeZoneType {
@@ -42,7 +45,7 @@ enum TimeZoneType {
     AustraliaSydney = 8,
     AustraliaPerth = 9,
     AustraliaBrisbane = 10,
-    NewZelandAuckland = 11,
+    NewZealandAuckland = 11,
     USAHawaii = 12,
     USAAlaska = 13,
     USACentralTime = 14,
@@ -53,16 +56,33 @@ enum TimeZoneType {
     AmericaArgentina = 19,
     AmericaCentralAmerica = 20,
     PacificTime = 21,
+    UTC = 22,
 }
 
-declare class CluGateHttpRaw {
+enum TelnetLogLevelType {
+    Off = 0,
+    Error = 1,
+    Warning = 2,
+    Info = 3,
+    Debug = 4,
+}
+
+enum TelnetBusLogLevelType {
+    Off = 0,
+    Error = 1,
+    Warning = 2,
+    Info = 3,
+    Debug = 4,
+}
+
+declare class CluGateModbusRaw {
     add_event(event: EventType, callback: () => void): void;
     get(property: PropertyType): any;
     set(property: PropertyType, value: any): void;
     execute(method: MethodType, ...args: any[]): any;
 }
 
-interface ICluGateHttp {
+interface ICluGateModbus {
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
@@ -73,10 +93,6 @@ interface ICluGateHttp {
      * @param {number} localTimestamp
      */
     setDateTime: (localTimestamp: number) => void
-    /** Uruchamia konsolę Lua */
-    startConsole: () => void
-    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
-    startConsoleOnReboot: () => void
     /**
      * Ustawia okres raportowania o zmianach cech
      * @param {number} clientReportInterval
@@ -84,18 +100,26 @@ interface ICluGateHttp {
     setClientReportInterval: (clientReportInterval: number) => void
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS: (iP: string) => void
+    setPrimaryDNS: (ip: string) => void
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS: (iP: string) => void
+    setSecondaryDNS: (ip: string) => void
+    /**
+     * Określa poziom logowania
+     * @param {TelnetLogLevelType} telnetLogLevel
+     */
+    setTelnetLogLevel: (telnetLogLevel: TelnetLogLevelType) => void
+    /**
+     * Określa poziom logowania Modbus
+     * @param {TelnetBusLogLevelType} telnetBusLogLevel
+     */
+    setTelnetBusLogLevel: (telnetBusLogLevel: TelnetBusLogLevelType) => void
     /** Czas pracy urządzenia od ostatniego resetu (w sekundach) */
     readonly uptime: number
-    /** Okres raportowania o zmianach cech */
-    clientReportInterval: number
     /** Zwraca aktualną datę */
     readonly date: string
     /** Zwraca aktualny czas (hh:mm:ss) */
@@ -113,26 +137,36 @@ interface ICluGateHttp {
     /** Określa status połączenia Gate z chmurą */
     readonly cloudConnection: boolean
     /** Timeout NTP */
-    nTPTimeout: number
+    ntpTimeout: number
     /** Określa czy Gate używa NTP */
-    useNTP: boolean
+    useNtp: boolean
+    /** Okres raportowania o zmianach cech */
+    clientReportInterval: number
     /** Preferowany serwer DNS */
     primaryDNS: string
     /** Alternatywny serwer DNS */
     secondaryDNS: string
+    /** Określa poziom logowania */
+    telnetLogLevel: TelnetLogLevelType
+    /** Określa poziom logowania Modbus */
+    telnetBusLogLevel: TelnetBusLogLevelType
+    /** Określa dodatkową przerwę pomiędzy ramkami Modbus wyrażoną w znakach */
+    modbusMasterFrameSpace: number
+    /** Określa, czy Gate powinien zgłaszać przeciążenie procesora */
+    overloadDetection: boolean
+    /** Określa przyczynę restartu urządzenia */
+    readonly resetReason: number
 }
 
-class CluGateHttp implements ICluGateHttp {
+class CluGateModbus implements ICluGateModbus {
     private onInitCallbacks: Array<() => void> = [];
 
-    constructor(private raw: CluGateHttpRaw) {
+    constructor(private raw: CluGateModbusRaw) {
         this.raw.add_event(EventType.OnInit, () => {
-            this.onInitCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onInitCallbacks.forEach(callback => { callback(); });
         });
-
     }
+
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
@@ -147,14 +181,6 @@ class CluGateHttp implements ICluGateHttp {
     setDateTime(localTimestamp: number): void {
         this.raw.execute(MethodType.SetDateTime, localTimestamp);
     }
-    /** Uruchamia konsolę Lua */
-    startConsole(): void {
-        this.raw.execute(MethodType.StartConsole);
-    }
-    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
-    startConsoleOnReboot(): void {
-        this.raw.execute(MethodType.StartConsoleOnReboot);
-    }
     /**
      * Ustawia okres raportowania o zmianach cech
      * @param {number} clientReportInterval
@@ -164,17 +190,31 @@ class CluGateHttp implements ICluGateHttp {
     }
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS(iP: string): void {
-        this.raw.set(PropertyType.PrimaryDNS, iP);
+    setPrimaryDNS(ip: string): void {
+        this.raw.set(PropertyType.PrimaryDNS, ip);
     }
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS(iP: string): void {
-        this.raw.set(PropertyType.SecondaryDNS, iP);
+    setSecondaryDNS(ip: string): void {
+        this.raw.set(PropertyType.SecondaryDNS, ip);
+    }
+    /**
+     * Określa poziom logowania
+     * @param {TelnetLogLevelType} telnetLogLevel
+     */
+    setTelnetLogLevel(telnetLogLevel: TelnetLogLevelType): void {
+        this.raw.set(PropertyType.TelnetLogLevel, telnetLogLevel);
+    }
+    /**
+     * Określa poziom logowania Modbus
+     * @param {TelnetBusLogLevelType} telnetBusLogLevel
+     */
+    setTelnetBusLogLevel(telnetBusLogLevel: TelnetBusLogLevelType): void {
+        this.raw.set(PropertyType.TelnetBusLogLevel, telnetBusLogLevel);
     }
     /**
      * Czas pracy urządzenia od ostatniego resetu (w sekundach)
@@ -182,16 +222,6 @@ class CluGateHttp implements ICluGateHttp {
      */
     get uptime(): number {
         return this.raw.get(PropertyType.Uptime);
-    }
-    /**
-     * Okres raportowania o zmianach cech
-     * @returns {number}
-     */
-    get clientReportInterval(): number {
-        return this.raw.get(PropertyType.ClientReportInterval);
-    }
-    set clientReportInterval(value: number) {
-        this.raw.set(PropertyType.ClientReportInterval, value);
     }
     /**
      * Zwraca aktualną datę
@@ -259,21 +289,31 @@ class CluGateHttp implements ICluGateHttp {
      * Timeout NTP
      * @returns {number}
      */
-    get nTPTimeout(): number {
+    get ntpTimeout(): number {
         return this.raw.get(PropertyType.NTPTimeout);
     }
-    set nTPTimeout(value: number) {
+    set ntpTimeout(value: number) {
         this.raw.set(PropertyType.NTPTimeout, value);
     }
     /**
      * Określa czy Gate używa NTP
      * @returns {boolean}
      */
-    get useNTP(): boolean {
+    get useNtp(): boolean {
         return this.raw.get(PropertyType.UseNTP) === 1;
     }
-    set useNTP(value: boolean) {
+    set useNtp(value: boolean) {
         this.raw.set(PropertyType.UseNTP, value ? 1 : 0);
+    }
+    /**
+     * Okres raportowania o zmianach cech
+     * @returns {number}
+     */
+    get clientReportInterval(): number {
+        return this.raw.get(PropertyType.ClientReportInterval);
+    }
+    set clientReportInterval(value: number) {
+        this.raw.set(PropertyType.ClientReportInterval, value);
     }
     /**
      * Preferowany serwer DNS
@@ -295,12 +335,59 @@ class CluGateHttp implements ICluGateHttp {
     set secondaryDNS(value: string) {
         this.raw.set(PropertyType.SecondaryDNS, value);
     }
+    /**
+     * Określa poziom logowania
+     * @returns {TelnetLogLevelType}
+     */
+    get telnetLogLevel(): TelnetLogLevelType {
+        return this.raw.get(PropertyType.TelnetLogLevel);
+    }
+    set telnetLogLevel(value: TelnetLogLevelType) {
+        this.raw.set(PropertyType.TelnetLogLevel, value);
+    }
+    /**
+     * Określa poziom logowania Modbus
+     * @returns {TelnetBusLogLevelType}
+     */
+    get telnetBusLogLevel(): TelnetBusLogLevelType {
+        return this.raw.get(PropertyType.TelnetBusLogLevel);
+    }
+    set telnetBusLogLevel(value: TelnetBusLogLevelType) {
+        this.raw.set(PropertyType.TelnetBusLogLevel, value);
+    }
+    /**
+     * Określa dodatkową przerwę pomiędzy ramkami Modbus wyrażoną w znakach
+     * @returns {number}
+     */
+    get modbusMasterFrameSpace(): number {
+        return this.raw.get(PropertyType.ModbusMasterFrameSpace);
+    }
+    set modbusMasterFrameSpace(value: number) {
+        this.raw.set(PropertyType.ModbusMasterFrameSpace, value);
+    }
+    /**
+     * Określa, czy Gate powinien zgłaszać przeciążenie procesora
+     * @returns {boolean}
+     */
+    get overloadDetection(): boolean {
+        return this.raw.get(PropertyType.OverloadDetection) === 1;
+    }
+    set overloadDetection(value: boolean) {
+        this.raw.set(PropertyType.OverloadDetection, value ? 1 : 0);
+    }
+    /**
+     * Określa przyczynę restartu urządzenia
+     * @returns {number}
+     */
+    get resetReason(): number {
+        return this.raw.get(PropertyType.ResetReason);
+    }
 }
 
-class CluGateHttpRemote implements ICluGateHttp {
+class CluGateModbusRemote implements ICluGateModbus {
     constructor(private objectName: string, private gate: RemoteGate) {
-
     }
+
     /**
      * Zdarzenie wywoływane jednorazowo w momencie inicjalizacji urządzenia
      * @param callback
@@ -320,22 +407,6 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         this.gate.runScript(cmd!);
     }
-    /** Uruchamia konsolę Lua */
-    startConsole(): void {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .execute()
-            .addParameter(MethodType.StartConsole)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-    /** Uruchamia konsolę Lua przy ponownym uruchomieniu */
-    startConsoleOnReboot(): void {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .execute()
-            .addParameter(MethodType.StartConsoleOnReboot)
-            .build();
-        this.gate.runScript(cmd!);
-    }
     /**
      * Ustawia okres raportowania o zmianach cech
      * @param {number} clientReportInterval
@@ -350,25 +421,49 @@ class CluGateHttpRemote implements ICluGateHttp {
     }
     /**
      * Ustawia cechę PrimaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setPrimaryDNS(iP: string): void {
+    setPrimaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.PrimaryDNS)
-            .addParameter(iP)
+            .addParameter(ip)
             .build();
         this.gate.runScript(cmd!);
     }
     /**
      * Ustawia cechę SecondaryDNS
-     * @param {string} iP
+     * @param {string} ip
      */
-    setSecondaryDNS(iP: string): void {
+    setSecondaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.SecondaryDNS)
-            .addParameter(iP)
+            .addParameter(ip)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Określa poziom logowania
+     * @param {TelnetLogLevelType} telnetLogLevel
+     */
+    setTelnetLogLevel(telnetLogLevel: TelnetLogLevelType): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.TelnetLogLevel)
+            .addParameter(telnetLogLevel)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Określa poziom logowania Modbus
+     * @param {TelnetBusLogLevelType} telnetBusLogLevel
+     */
+    setTelnetBusLogLevel(telnetBusLogLevel: TelnetBusLogLevelType): void {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.TelnetBusLogLevel)
+            .addParameter(telnetBusLogLevel)
             .build();
         this.gate.runScript(cmd!);
     }
@@ -382,25 +477,6 @@ class CluGateHttpRemote implements ICluGateHttp {
             .addParameter(PropertyType.Uptime)
             .build();
         return this.gate.runScript(cmd!);
-    }
-    /**
-     * Okres raportowania o zmianach cech
-     * @returns {number}
-     */
-    get clientReportInterval(): number {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.ClientReportInterval)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-    set clientReportInterval(value: number) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.ClientReportInterval)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
     }
     /**
      * Zwraca aktualną datę
@@ -510,14 +586,14 @@ class CluGateHttpRemote implements ICluGateHttp {
      * Timeout NTP
      * @returns {number}
      */
-    get nTPTimeout(): number {
+    get ntpTimeout(): number {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .get()
             .addParameter(PropertyType.NTPTimeout)
             .build();
         return this.gate.runScript(cmd!);
     }
-    set nTPTimeout(value: number) {
+    set ntpTimeout(value: number) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.NTPTimeout)
@@ -529,18 +605,37 @@ class CluGateHttpRemote implements ICluGateHttp {
      * Określa czy Gate używa NTP
      * @returns {boolean}
      */
-    get useNTP(): boolean {
+    get useNtp(): boolean {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .get()
             .addParameter(PropertyType.UseNTP)
             .build();
         return this.gate.runScript(cmd!) === 1;
     }
-    set useNTP(value: boolean) {
+    set useNtp(value: boolean) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
             .addParameter(PropertyType.UseNTP)
             .addParameter(value ? 1 : 0)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Okres raportowania o zmianach cech
+     * @returns {number}
+     */
+    get clientReportInterval(): number {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.ClientReportInterval)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+    set clientReportInterval(value: number) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.ClientReportInterval)
+            .addParameter(value)
             .build();
         this.gate.runScript(cmd!);
     }
@@ -582,8 +677,93 @@ class CluGateHttpRemote implements ICluGateHttp {
             .build();
         this.gate.runScript(cmd!);
     }
+    /**
+     * Określa poziom logowania
+     * @returns {TelnetLogLevelType}
+     */
+    get telnetLogLevel(): TelnetLogLevelType {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.TelnetLogLevel)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+    set telnetLogLevel(value: TelnetLogLevelType) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.TelnetLogLevel)
+            .addParameter(value)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Określa poziom logowania Modbus
+     * @returns {TelnetBusLogLevelType}
+     */
+    get telnetBusLogLevel(): TelnetBusLogLevelType {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.TelnetBusLogLevel)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+    set telnetBusLogLevel(value: TelnetBusLogLevelType) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.TelnetBusLogLevel)
+            .addParameter(value)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Określa dodatkową przerwę pomiędzy ramkami Modbus wyrażoną w znakach
+     * @returns {number}
+     */
+    get modbusMasterFrameSpace(): number {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.ModbusMasterFrameSpace)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
+    set modbusMasterFrameSpace(value: number) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.ModbusMasterFrameSpace)
+            .addParameter(value)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Określa, czy Gate powinien zgłaszać przeciążenie procesora
+     * @returns {boolean}
+     */
+    get overloadDetection(): boolean {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.OverloadDetection)
+            .build();
+        return this.gate.runScript(cmd!) === 1;
+    }
+    set overloadDetection(value: boolean) {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .set()
+            .addParameter(PropertyType.OverloadDetection)
+            .addParameter(value ? 1 : 0)
+            .build();
+        this.gate.runScript(cmd!);
+    }
+    /**
+     * Określa przyczynę restartu urządzenia
+     * @returns {number}
+     */
+    get resetReason(): number {
+        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
+            .get()
+            .addParameter(PropertyType.ResetReason)
+            .build();
+        return this.gate.runScript(cmd!);
+    }
 }
 
-export {
-    CluGateHttp, CluGateHttpRaw, CluGateHttpRemote, TimeZoneType
-}
+export { CluGateModbus, CluGateModbusRaw, CluGateModbusRemote, TimeZoneType, TelnetLogLevelType, TelnetBusLogLevelType }
