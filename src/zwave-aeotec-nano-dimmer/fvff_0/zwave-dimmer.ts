@@ -47,6 +47,8 @@ interface IZwaveDimmer {
     addOnValueLower: (callback: () => void) => void
     /** Aktualna wartość ściemniacza */
     value: number
+    /** Ustawia wartość ściemniacza */
+    setValue: (value: number) => void
     /** Minimalna wartość ściemniacza */
     minValue: number
     /** Maksymalna wartość ściemniacza */
@@ -106,6 +108,7 @@ class ZwaveDimmer implements IZwaveDimmer {
     /** Aktualna wartość ściemniacza */
     get value(): number { return this.raw.get(PropertyType.Value); }
     set value(val: number) { this.raw.set(PropertyType.Value, val); }
+    setValue(value: number): void { this.value = value; }
     /** Minimalna wartość ściemniacza */
     get minValue(): number { return this.raw.get(PropertyType.MinValue); }
     set minValue(val: number) { this.raw.set(PropertyType.MinValue, val); }
@@ -160,6 +163,7 @@ class ZwaveDimmerRemote implements IZwaveDimmer {
         const cmd = rawExecutionBuilderFactory(this.objectName).set().addParameter(PropertyType.Value).addParameter(val).build();
         this.gate.runScript(cmd!);
     }
+    setValue(value: number): void { this.value = value; }
     /** Minimalna wartość ściemniacza */
     get minValue(): number {
         const cmd = rawExecutionBuilderFactory(this.objectName).get().addParameter(PropertyType.MinValue).build();
