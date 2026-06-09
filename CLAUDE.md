@@ -14,8 +14,24 @@ npm run watch    # Watch mode for development
 This is a TypeScript API library for Grenton smart home hardware modules. The code provides TypeScript wrappers around raw hardware interfaces, enabling type-safe interaction with Grenton devices.
 
 ### Directory Structure
+- Files module_*.xml
+   - Each hardware module has its own directory taken from <module /> node and @name attribute.
+   - Inside each module directory, subfolders use the naming convention `fvXX_YY`.
+- Files clu_GATE_ALARM_*.xml
+   - classes created from <clu /> node go to src/gate-alarm directory
+   - src/gate-alarm contains subfolders with versions
+   - each version folder contains TS classes
+   - file with TS classes is named gate-alarm.ts
+   - apply same rules for all <clu className="GATE"/> nodes
+- Files clu_zwave_2_*.xml
+   - classes created from <clu /> node go to src/clu-zwave-2 directory
+   - src/clu-zwave-2 contains subfolders with versions
+   - each version folder contains TS classes
+   - file with TS classes is named clu-zwave-2.ts
+   - apply same rules for all clu_zwave_ft*.xml
 
-Each hardware module has its own directory named after the device type (e.g., `roller-shutter-din-3`, `digital-in-din`, `analog-din`). Inside each module directory, subfolders use the naming convention `fwtype-XX-fwapiver-YY` or `fvXX_YY` to version the firmware type and API version.
+- All GATE class (@className="GATE") files go to gate folder
+- All non GATE class files go to clu folder
 
 ### Core Pattern
 
@@ -34,10 +50,12 @@ All device wrappers follow the same architectural pattern:
    - Registers single handlers on raw interface that dispatch to all registered callbacks
    - Exposes typed methods and properties using enums
    - Contains comments in Polish. Comments are taken from text-resources folder.
-   - For evenry <feature /> in <features /> node generate wrapper property
+   - For every <feature /> in <features /> node generate wrapper property
       - when attribute set="true" generate property setter.
       - when attributes get="true" generate property getter.
       - when attributes set="true" and get="false" generate property getter and setter.
+      - when unit="bool", type="num", range="0-1" check if raw object returns 0 or 1 and convert it to bool.
+
    - For every <method/> in <methods /> node generate wrapper methods that run raw method. Raw method to run is defined in "call" attribute
    - For every <event/> in <events /> node generate event. Event name is in name attribute.
 
@@ -57,7 +75,3 @@ Enum values are numeric IDs that map to the firmware API.
 
 - `core/remote-gate.ts`: `RemoteGate` class for executing scripts on remote CLUs
 - `core/execution-builder.ts`: Builder pattern for constructing remote execution command strings
-
-### Foders
-- All GATE class files go to gate folder
-- All non GATE class files go to clu folder
