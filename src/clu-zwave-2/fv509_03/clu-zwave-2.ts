@@ -1,4 +1,4 @@
-// Created from: packages/grenton-api/interfaces/clu_ZWAVE_2_ft00000003_fv203_ht00000013_hv00000001.xml, object name="CLU_ZWAVE_2"
+// Created from: src/interfaces/clu_ZWAVE_2_ft00000003_fv1fd_ht00000013_hv00000001.xml, object name="CLU_ZWAVE_2"
 
 import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
 import { RemoteGate } from "../../../core/remote-gate"
@@ -10,7 +10,7 @@ enum EventType {
     OnBusVoltageRise = 10,
     OnBusVoltageOutOfRange = 11,
     OnBusVoltageInRange = 12,
-    OnTimeChange = 13
+    OnTimeChange = 13,
 }
 
 enum PropertyType {
@@ -41,20 +41,14 @@ enum PropertyType {
     BusVoltageSensitivity = 28,
     MaxBusVoltage = 29,
     MinBusVoltage = 30,
-    TelnetLogLevel = 31,
-    ZWaveRouting = 33,
-    MeasurementKey = 34,
-    LastMeasurementSendTime = 35
 }
 
 enum MethodType {
     AddToLog = 0,
     ClearLog = 1,
     SetDateTime = 2,
-    StartZWaveInclusion = 3,
-    StopZWaveInclusion = 4,
-    StartZWaveExclusion = 7,
-    StopZWaveExclusion = 8
+    StartZWaveDiscovery = 3,
+    StopZWaveDiscovery = 4,
 }
 
 enum StateType {
@@ -69,12 +63,12 @@ enum StateType {
     RemovingZWaveNode = 8,
     ZWaveAddRemoveBusy = 9,
     ZWaveAddRemoveError = 10,
-    ZWaveAddRemoveOk = 11
+    ZWaveAddRemoveOk = 11,
 }
 
 enum VoltageFrequencyType {
     Hz50 = 50,
-    Hz60 = 60
+    Hz60 = 60,
 }
 
 enum TimeZoneType {
@@ -100,30 +94,11 @@ enum TimeZoneType {
     AmericaArgentina = 19,
     AmericaCentralAmerica = 20,
     PacificTime = 21,
-    UTC = 22,
-    AsiaKolkata = 23,
-    AsiaTehran = 24,
-    AsiaRiyadh = 25,
-    AfricaLagos = 26,
-    AfricaJohannesburg = 27
 }
 
 enum QoSType {
     QoS0 = 0,
-    QoS1 = 1
-}
-
-enum TelnetLogLevelType {
-    Off = 0,
-    Error = 1,
-    Warning = 2,
-    Info = 3,
-    Debug = 4
-}
-
-enum ZWaveRoutingType {
-    Off = 0,
-    On = 1
+    QoS1 = 1,
 }
 
 enum DayOfWeek {
@@ -133,7 +108,7 @@ enum DayOfWeek {
     Wednesday = 3,
     Thursday = 4,
     Friday = 5,
-    Saturday = 6
+    Saturday = 6,
 }
 
 declare class CluZWave2Raw {
@@ -192,19 +167,22 @@ interface ICluZWave2 {
      */
     setDateTime: (localTimestamp: number) => void
     /**
-     * Uruchamia dodawanie urządzeń bezprzewodowych
+     * Uruchamia wykrywanie urządzeń bezprzewodowych
      * @param {number} time
      */
-    startZWaveInclusion: (time: number) => void
-    /** Wstrzymuje dodawanie urządzeń bezprzewodowych */
-    stopZWaveInclusion: () => void
+    startZWaveDiscovery: (time: number) => void
+    /** Wstrzymuje wykrywanie urządzeń bezprzewodowych */
+    stopZWaveDiscovery: () => void
     /**
-     * Uruchamia usuwanie urządzeń bezprzewodowych
-     * @param {number} time
+     * Ustawia cechę PrimaryDNS
+     * @param {string} ip
      */
-    startZWaveExclusion: (time: number) => void
-    /** Wstrzymuje usuwanie urządzeń bezprzewodowych */
-    stopZWaveExclusion: () => void
+    setPrimaryDNS: (ip: string) => void
+    /**
+     * Ustawia cechę SecondaryDNS
+     * @param {string} ip
+     */
+    setSecondaryDNS: (ip: string) => void
     /** Czas pracy urządzenia od ostatniego resetu (w sekundach) */
     readonly uptime: number
     /** Wewnętrzny log urządzenia */
@@ -241,6 +219,7 @@ interface ICluZWave2 {
     voltageFrequency: VoltageFrequencyType
     /** Domyślna wartość napięcia definiowanego w urządzeniach */
     defaultVoltageValue: number
+    /** Adres serwera czasu UTC */
     ntpServer: string
     /** Strefa czasowa */
     timeZone: TimeZoneType
@@ -258,14 +237,6 @@ interface ICluZWave2 {
     maxBusVoltage: number
     /** Wartość minimalna po przekroczeniu której generowane jest zdarzenie OnBusVoltageOutOfRange */
     minBusVoltage: number
-    /** Określa poziom logowania */
-    telnetLogLevel: TelnetLogLevelType
-    /** Włącza możliwość użycia routingu podczas wysyłania komend z CLU do modułu Z-Wave */
-    zWaveRouting: ZWaveRoutingType
-    /** Klucz służący do synchronizacji pomiarów w chmurze */
-    measurementKey: string
-    /** Czas wysłania ostatniej paczki pomiarowej */
-    readonly lastMeasurementSendTime: string
 }
 
 class CluZWave2 implements ICluZWave2 {
@@ -279,45 +250,25 @@ class CluZWave2 implements ICluZWave2 {
 
     constructor(private raw: CluZWave2Raw) {
         this.raw.add_event(EventType.OnInit, () => {
-            this.onInitCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onInitCallbacks.forEach(callback => { callback(); });
         });
-
         this.raw.add_event(EventType.OnBusVoltageChange, () => {
-            this.onBusVoltageChangeCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onBusVoltageChangeCallbacks.forEach(callback => { callback(); });
         });
-
         this.raw.add_event(EventType.OnBusVoltageLower, () => {
-            this.onBusVoltageLowerCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onBusVoltageLowerCallbacks.forEach(callback => { callback(); });
         });
-
         this.raw.add_event(EventType.OnBusVoltageRise, () => {
-            this.onBusVoltageRiseCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onBusVoltageRiseCallbacks.forEach(callback => { callback(); });
         });
-
         this.raw.add_event(EventType.OnBusVoltageOutOfRange, () => {
-            this.onBusVoltageOutOfRangeCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onBusVoltageOutOfRangeCallbacks.forEach(callback => { callback(); });
         });
-
         this.raw.add_event(EventType.OnBusVoltageInRange, () => {
-            this.onBusVoltageInRangeCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onBusVoltageInRangeCallbacks.forEach(callback => { callback(); });
         });
-
         this.raw.add_event(EventType.OnTimeChange, () => {
-            this.onTimeChangeCallbacks.forEach(callback => {
-                callback();
-            });
+            this.onTimeChangeCallbacks.forEach(callback => { callback(); });
         });
     }
 
@@ -389,26 +340,29 @@ class CluZWave2 implements ICluZWave2 {
         this.raw.execute(MethodType.SetDateTime, localTimestamp);
     }
     /**
-     * Uruchamia dodawanie urządzeń bezprzewodowych
+     * Uruchamia wykrywanie urządzeń bezprzewodowych
      * @param {number} time
      */
-    startZWaveInclusion(time: number): void {
-        this.raw.execute(MethodType.StartZWaveInclusion, time);
+    startZWaveDiscovery(time: number): void {
+        this.raw.execute(MethodType.StartZWaveDiscovery, time);
     }
-    /** Wstrzymuje dodawanie urządzeń bezprzewodowych */
-    stopZWaveInclusion(): void {
-        this.raw.execute(MethodType.StopZWaveInclusion);
+    /** Wstrzymuje wykrywanie urządzeń bezprzewodowych */
+    stopZWaveDiscovery(): void {
+        this.raw.execute(MethodType.StopZWaveDiscovery);
     }
     /**
-     * Uruchamia usuwanie urządzeń bezprzewodowych
-     * @param {number} time
+     * Ustawia cechę PrimaryDNS
+     * @param {string} ip
      */
-    startZWaveExclusion(time: number): void {
-        this.raw.execute(MethodType.StartZWaveExclusion, time);
+    setPrimaryDNS(ip: string): void {
+        this.raw.set(PropertyType.PrimaryDNS, ip);
     }
-    /** Wstrzymuje usuwanie urządzeń bezprzewodowych */
-    stopZWaveExclusion(): void {
-        this.raw.execute(MethodType.StopZWaveExclusion);
+    /**
+     * Ustawia cechę SecondaryDNS
+     * @param {string} ip
+     */
+    setSecondaryDNS(ip: string): void {
+        this.raw.set(PropertyType.SecondaryDNS, ip);
     }
     /**
      * Czas pracy urządzenia od ostatniego resetu (w sekundach)
@@ -545,6 +499,10 @@ class CluZWave2 implements ICluZWave2 {
     set defaultVoltageValue(value: number) {
         this.raw.set(PropertyType.DefaultVoltageValue, value);
     }
+    /**
+     * Adres serwera czasu UTC
+     * @returns {string}
+     */
     get ntpServer(): string {
         return this.raw.get(PropertyType.NTPServer);
     }
@@ -628,48 +586,10 @@ class CluZWave2 implements ICluZWave2 {
     set minBusVoltage(value: number) {
         this.raw.set(PropertyType.MinBusVoltage, value);
     }
-    /**
-     * Określa poziom logowania
-     * @returns {TelnetLogLevelType}
-     */
-    get telnetLogLevel(): TelnetLogLevelType {
-        return this.raw.get(PropertyType.TelnetLogLevel);
-    }
-    set telnetLogLevel(value: TelnetLogLevelType) {
-        this.raw.set(PropertyType.TelnetLogLevel, value);
-    }
-    /**
-     * Włącza możliwość użycia routingu podczas wysyłania komend z CLU do modułu Z-Wave
-     * @returns {ZWaveRoutingType}
-     */
-    get zWaveRouting(): ZWaveRoutingType {
-        return this.raw.get(PropertyType.ZWaveRouting);
-    }
-    set zWaveRouting(value: ZWaveRoutingType) {
-        this.raw.set(PropertyType.ZWaveRouting, value);
-    }
-    /**
-     * Klucz służący do synchronizacji pomiarów w chmurze
-     * @returns {string}
-     */
-    get measurementKey(): string {
-        return this.raw.get(PropertyType.MeasurementKey);
-    }
-    set measurementKey(value: string) {
-        this.raw.set(PropertyType.MeasurementKey, value);
-    }
-    /**
-     * Czas wysłania ostatniej paczki pomiarowej
-     * @returns {string}
-     */
-    get lastMeasurementSendTime(): string {
-        return this.raw.get(PropertyType.LastMeasurementSendTime);
-    }
 }
 
 class CluZWave2Remote implements ICluZWave2 {
     constructor(private objectName: string, private gate: RemoteGate) {
-
     }
 
     /**
@@ -721,7 +641,6 @@ class CluZWave2Remote implements ICluZWave2 {
     addOnTimeChange(_callback: () => void): void {
         // Remote events are not supported
     }
-
     /**
      * Dodaje do loga wewnętrznego nowy wpis
      * @param {string} log
@@ -734,7 +653,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /** Kasuje zawartość wewnętrznego logu urządzenia */
     clearLog(): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
@@ -743,7 +661,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Ustawia datę i czas
      * @param {number} localTimestamp
@@ -756,51 +673,50 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
-     * Uruchamia dodawanie urządzeń bezprzewodowych
+     * Uruchamia wykrywanie urządzeń bezprzewodowych
      * @param {number} time
      */
-    startZWaveInclusion(time: number): void {
+    startZWaveDiscovery(time: number): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .execute()
-            .addParameter(MethodType.StartZWaveInclusion)
+            .addParameter(MethodType.StartZWaveDiscovery)
             .addParameter(time)
             .build();
         this.gate.runScript(cmd!);
     }
-
-    /** Wstrzymuje dodawanie urządzeń bezprzewodowych */
-    stopZWaveInclusion(): void {
+    /** Wstrzymuje wykrywanie urządzeń bezprzewodowych */
+    stopZWaveDiscovery(): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .execute()
-            .addParameter(MethodType.StopZWaveInclusion)
+            .addParameter(MethodType.StopZWaveDiscovery)
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
-     * Uruchamia usuwanie urządzeń bezprzewodowych
-     * @param {number} time
+     * Ustawia cechę PrimaryDNS
+     * @param {string} ip
      */
-    startZWaveExclusion(time: number): void {
+    setPrimaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .execute()
-            .addParameter(MethodType.StartZWaveExclusion)
-            .addParameter(time)
+            .set()
+            .addParameter(PropertyType.PrimaryDNS)
+            .addParameter(ip)
             .build();
         this.gate.runScript(cmd!);
     }
-
-    /** Wstrzymuje usuwanie urządzeń bezprzewodowych */
-    stopZWaveExclusion(): void {
+    /**
+     * Ustawia cechę SecondaryDNS
+     * @param {string} ip
+     */
+    setSecondaryDNS(ip: string): void {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .execute()
-            .addParameter(MethodType.StopZWaveExclusion)
+            .set()
+            .addParameter(PropertyType.SecondaryDNS)
+            .addParameter(ip)
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Czas pracy urządzenia od ostatniego resetu (w sekundach)
      * @returns {number}
@@ -812,7 +728,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Wewnętrzny log urządzenia
      * @returns {string}
@@ -824,7 +739,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Stan urządzenia: 0 - Start systemu, 1 - System OK, 2 - Tryb logowania telnet, 3 - Tryb emergency, 4 - Błąd krytyczny, 5 - Tryb monitorowania, 6 - Moduł TF-Bus nie odpowiada, 7 - Tryb dodawania modułu Z-Wave, 8 - Tryb usuwania modułu Z-Wave, 9 - Proces dodawania / usuwania modułu Z-Wave w trakcie, 10 - Błąd dodawania / usuwania modułu Z-Wave, 11 - Poprawne dodanie / usunięcie modułu Z-Wave
      * @returns {StateType}
@@ -836,7 +750,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Stan zasilania
      * @returns {boolean}
@@ -848,7 +761,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!) === 1;
     }
-
     /**
      * Zwraca aktualną datę
      * @returns {string}
@@ -860,7 +772,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca aktualny czas (hh:mm:ss)
      * @returns {string}
@@ -872,7 +783,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca numer bieżącego dnia miesiąca
      * @returns {number}
@@ -884,7 +794,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca numer bieżącego miesiąca
      * @returns {number}
@@ -896,7 +805,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca numer bieżącego roku
      * @returns {number}
@@ -908,7 +816,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca numer bieżącego dnia tygodnia (0=niedziela)
      * @returns {DayOfWeek}
@@ -920,7 +827,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca aktualną godzinę (bez minut i sekund)
      * @returns {number}
@@ -932,7 +838,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca aktualną liczbę minut od ostatniej pełnej godziny
      * @returns {number}
@@ -944,7 +849,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Zwraca aktualny znacznik czasu
      * @returns {number}
@@ -956,7 +860,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Wersja oprogramowania CLU
      * @returns {string}
@@ -968,7 +871,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Określa czy CLU łączy się do chmury
      * @returns {boolean}
@@ -980,7 +882,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!) === 1;
     }
-
     set useCloud(value: boolean) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -989,7 +890,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Określa status połączenia CLU z chmurą
      * @returns {boolean}
@@ -1001,7 +901,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!) === 1;
     }
-
     /**
      * Częstotliwość napięcia w sieci
      * @returns {VoltageFrequencyType}
@@ -1013,7 +912,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set voltageFrequency(value: VoltageFrequencyType) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1022,7 +920,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Domyślna wartość napięcia definiowanego w urządzeniach
      * @returns {number}
@@ -1034,7 +931,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set defaultVoltageValue(value: number) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1043,7 +939,10 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
+    /**
+     * Adres serwera czasu UTC
+     * @returns {string}
+     */
     get ntpServer(): string {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .get()
@@ -1051,7 +950,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set ntpServer(value: string) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1060,7 +958,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Strefa czasowa
      * @returns {TimeZoneType}
@@ -1072,7 +969,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set timeZone(value: TimeZoneType) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1081,7 +977,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Jakość usług sieciowych
      * @returns {QoSType}
@@ -1093,7 +988,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set qoS(value: QoSType) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1102,7 +996,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Preferowany serwer DNS
      * @returns {string}
@@ -1114,7 +1007,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set primaryDNS(value: string) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1123,7 +1015,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Alternatywny serwer DNS
      * @returns {string}
@@ -1135,7 +1026,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set secondaryDNS(value: string) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1144,7 +1034,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Napięcie zasilania CLU
      * @returns {number}
@@ -1156,7 +1045,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     /**
      * Czułość - minimalna zmiana wartości na zasilaniu która wywołuje zdarzenia OnBusVoltageChange, OnBusVoltageLower lub OnBusVoltageRise
      * @returns {number}
@@ -1168,7 +1056,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set busVoltageSensitivity(value: number) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1177,7 +1064,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Wartość maksymalna po przekroczeniu której generowane jest zdarzenie OnBusVoltageOutOfRange
      * @returns {number}
@@ -1189,7 +1075,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set maxBusVoltage(value: number) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1198,7 +1083,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
     /**
      * Wartość minimalna po przekroczeniu której generowane jest zdarzenie OnBusVoltageOutOfRange
      * @returns {number}
@@ -1210,7 +1094,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         return this.gate.runScript(cmd!);
     }
-
     set minBusVoltage(value: number) {
         const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
             .set()
@@ -1219,84 +1102,6 @@ class CluZWave2Remote implements ICluZWave2 {
             .build();
         this.gate.runScript(cmd!);
     }
-
-    /**
-     * Określa poziom logowania
-     * @returns {TelnetLogLevelType}
-     */
-    get telnetLogLevel(): TelnetLogLevelType {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.TelnetLogLevel)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-
-    set telnetLogLevel(value: TelnetLogLevelType) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.TelnetLogLevel)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-
-    /**
-     * Włącza możliwość użycia routingu podczas wysyłania komend z CLU do modułu Z-Wave
-     * @returns {ZWaveRoutingType}
-     */
-    get zWaveRouting(): ZWaveRoutingType {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.ZWaveRouting)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-
-    set zWaveRouting(value: ZWaveRoutingType) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.ZWaveRouting)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-
-    /**
-     * Klucz służący do synchronizacji pomiarów w chmurze
-     * @returns {string}
-     */
-    get measurementKey(): string {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.MeasurementKey)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
-
-    set measurementKey(value: string) {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .set()
-            .addParameter(PropertyType.MeasurementKey)
-            .addParameter(value)
-            .build();
-        this.gate.runScript(cmd!);
-    }
-
-    /**
-     * Czas wysłania ostatniej paczki pomiarowej
-     * @returns {string}
-     */
-    get lastMeasurementSendTime(): string {
-        const cmd: string | null = rawExecutionBuilderFactory(this.objectName)
-            .get()
-            .addParameter(PropertyType.LastMeasurementSendTime)
-            .build();
-        return this.gate.runScript(cmd!);
-    }
 }
 
-export {
-    CluZWave2, CluZWave2Raw, CluZWave2Remote,
-    StateType, VoltageFrequencyType, TimeZoneType, QoSType, TelnetLogLevelType, ZWaveRoutingType, DayOfWeek
-}
+export { CluZWave2, CluZWave2Raw, CluZWave2Remote, StateType, VoltageFrequencyType, TimeZoneType, QoSType, DayOfWeek }
