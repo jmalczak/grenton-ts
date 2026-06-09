@@ -2,7 +2,7 @@
 
 import * as dIn from "../../digital-in-din/fv01_02/din"
 import * as dOut from "../../io-module-din-8/fv02_02/dout"
-import * as pre from "../../clu/presence-sensor/v2/presence-sensor"
+import * as pre from "../../clu_old/presence-sensor/v2/presence-sensor"
 
 
 declare const DIN4819: dIn.DInRaw; //Presence sensor contact Object Id

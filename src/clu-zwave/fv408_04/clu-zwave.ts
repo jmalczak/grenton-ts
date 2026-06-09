@@ -1,7 +1,7 @@
 // Created from: src/interfaces/clu_ZWAVE_ft00000004_fv198_ht00000000_hv00000000.xml, object name="CLU_ZWAVE"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnInit = 0,
