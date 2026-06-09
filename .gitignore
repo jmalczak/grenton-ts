@@ -2,3 +2,4 @@ dist-js
 dist
 settings.local.json
 node_modules
+.idea

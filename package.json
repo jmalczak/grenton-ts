@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "tsc -p src/tsconfig.json && rm -rf dist && mkdir -p dist && (cd src && find . -name '*.ts' -exec cp --parents {} ../dist/ \\;)",
+    "build": "tsc -p src/tsconfig.json && rm -rf dist && mkdir -p dist && rsync -a --include='*/' --include='*.ts' --exclude='*' src/ dist/",
     "watch": "tsc -p src/tsconfig.json --watch"
   },
   "devDependencies": {
