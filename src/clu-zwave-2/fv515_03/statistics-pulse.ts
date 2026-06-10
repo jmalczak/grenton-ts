@@ -1,7 +1,7 @@
 // Created from: src/interfaces/object_statistics_pulse_v1.xml, object name="StatisticsPulse" version="1"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnPulseTriggered = 1

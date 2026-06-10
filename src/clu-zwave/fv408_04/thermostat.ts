@@ -1,7 +1,7 @@
 // Created from: src/interfaces/object_thermostat_v2.xml, object name="Thermostat" version="2"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnChange = 0,

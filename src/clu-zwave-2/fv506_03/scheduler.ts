@@ -1,7 +1,7 @@
 // Created from: src/interfaces/object_scheduler_v1.xml, object name="Scheduler" version="1"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnHarmonogram = 0,

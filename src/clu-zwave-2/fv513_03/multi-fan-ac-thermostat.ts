@@ -1,7 +1,7 @@
 // Created from: src/interfaces/object_multi_fan_ac_thermostat_v1.xml, object name="MultiFanACThermostat" version="1"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnPointValueChange = 0,

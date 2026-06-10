@@ -1,7 +1,7 @@
 // Created from: src/interfaces/object_calendar_v1.xml, object name="Calendar" version="1"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnCalendar = 0,

@@ -1,7 +1,7 @@
 // Created from: src/interfaces/object_presence_sensor_v1.xml, object name="PresenceSensor" version="1"
 
-import { rawExecutionBuilderFactory } from "../../../core/execution-builder"
-import { RemoteGate } from "../../../core/remote-gate"
+import { rawExecutionBuilderFactory } from "../../core/execution-builder"
+import { RemoteGate } from "../../core/remote-gate"
 
 enum EventType {
     OnStart = 0,
