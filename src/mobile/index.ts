@@ -648,24 +648,28 @@ export const MobileValueTypes = {
 export type MobileActionValue = string | number | boolean;
 export type MobileTargetIndex = string | number | null;
 
-export interface MobileRawObject {
-    objectName: string;
+// Minimal structural shape of a project-side named-object registry entry:
+// carries the OM name plus the CLU-side wrapper type (used only for typing -
+// mobile code must never touch `object`, it does not exist off the CLU).
+export interface MobileNamed<TObject = unknown> {
+    name: string;
+    object: TObject;
 }
 
 const mobileValueToString = (value: MobileActionValue): string => String(value);
 const mobileIndexToString = (index: MobileTargetIndex): string | null => index === null ? null : String(index);
 
-export class MobileTarget<TClu extends MobileRawObject = MobileRawObject, TObject extends MobileRawObject = MobileRawObject> {
+export class MobileTarget {
     constructor(
-        private readonly clu: TClu,
-        private readonly object: TObject,
+        private readonly cluName: string,
+        private readonly objectName: string,
         private readonly index: MobileTargetIndex = null
     ) {}
 
     attribute(): MobileObjectReference {
         return {
-            cluId: this.clu.objectName,
-            objectName: this.object.objectName,
+            cluId: this.cluName,
+            objectName: this.objectName,
             index: mobileIndexToString(this.index),
             callType: MobileCallTypes.Attribute
         };
@@ -694,8 +698,8 @@ export class MobileTarget<TClu extends MobileRawObject = MobileRawObject, TObjec
     private action(callType: MobileCallType, type: MobileActionType, value: MobileActionValue): MobileAction {
         const formattedValue = mobileValueToString(value);
         return {
-            cluId: this.clu.objectName,
-            objectName: this.object.objectName,
+            cluId: this.cluName,
+            objectName: this.objectName,
             index: mobileIndexToString(this.index),
             callType,
             type,
@@ -705,23 +709,22 @@ export class MobileTarget<TClu extends MobileRawObject = MobileRawObject, TObjec
     }
 }
 
-export const mobileTarget = <TClu extends MobileRawObject, TObject extends MobileRawObject>(
-    clu: TClu,
-    object: TObject,
+export const mobileTarget = (
+    cluName: string,
+    objectName: string,
     index: MobileTargetIndex = null
-): MobileTarget<TClu, TObject> => new MobileTarget(clu, object, index);
+): MobileTarget => new MobileTarget(cluName, objectName, index);
 
-// Named wrapper around a raw Grenton object bound to its CLU. This is the mobile
-// analog of the device wrappers (DOut, DIn, ...): declare the raw object, then wrap
-// it in a meaningfully named MobileObject and build references/actions from it.
-export class MobileObject<TClu extends MobileRawObject = MobileRawObject, TObject extends MobileRawObject = MobileRawObject> {
+// Named handle to a Grenton object bound to its CLU, identified by OM names.
+// Build references/actions for mobile widgets from it.
+export class MobileObject {
     constructor(
-        private readonly clu: TClu,
-        private readonly object: TObject
+        private readonly cluName: string,
+        private readonly objectName: string
     ) {}
 
-    target(index: MobileTargetIndex = null): MobileTarget<TClu, TObject> {
-        return new MobileTarget(this.clu, this.object, index);
+    target(index: MobileTargetIndex = null): MobileTarget {
+        return new MobileTarget(this.cluName, this.objectName, index);
     }
 
     attribute(index: MobileTargetIndex = null): MobileObjectReference {
@@ -741,22 +744,22 @@ export class MobileObject<TClu extends MobileRawObject = MobileRawObject, TObjec
     }
 }
 
-export const mobileObject = <TClu extends MobileRawObject, TObject extends MobileRawObject>(
-    clu: TClu,
-    object: TObject
-): MobileObject<TClu, TObject> => new MobileObject(clu, object);
+export const mobileObject = (
+    cluName: string,
+    objectName: string
+): MobileObject => new MobileObject(cluName, objectName);
 
 // Reference to a CLU script, invoked by name. Used for SCRIPT-type widget actions
 // (the script name is carried in `objectName`, with `callType: "SCRIPT"`).
-export class MobileScript<TClu extends MobileRawObject = MobileRawObject> {
+export class MobileScript {
     constructor(
-        private readonly clu: TClu,
+        private readonly cluName: string,
         public name: string
     ) {}
 
     action(type: MobileActionType = MobileActionTypes.Click): MobileAction {
         return {
-            cluId: this.clu.objectName,
+            cluId: this.cluName,
             objectName: this.name,
             index: null,
             callType: MobileCallTypes.Script,
@@ -775,10 +778,10 @@ export class MobileScript<TClu extends MobileRawObject = MobileRawObject> {
     }
 }
 
-export const mobileScript = <TClu extends MobileRawObject>(
-    clu: TClu,
+export const mobileScript = (
+    cluName: string,
     name: string
-): MobileScript<TClu> => new MobileScript(clu, name);
+): MobileScript => new MobileScript(cluName, name);
 
 export class MobileMonostableButtonComponent implements MobileMonostableButton {
     type: "BUTTON_MONOSTABLE" = "BUTTON_MONOSTABLE";
@@ -1011,7 +1014,7 @@ export class MobilePage {
             this.label = labelOrConfig;
         } else {
             Object.assign(this, labelOrConfig);
-            this.pageId = this.pageId || this.id;
+            this.pageId = labelOrConfig?.pageId ?? this.id;
         }
     }
 
