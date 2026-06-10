@@ -13,25 +13,26 @@ npm run watch    # Watch mode for development
 
 This is a TypeScript API library for Grenton smart home hardware modules. The code provides TypeScript wrappers around raw hardware interfaces, enabling type-safe interaction with Grenton devices.
 
+here ended generate objects for clus
+
 ### Directory Structure
+- Build output is in dist and dist-js folders.
 - Files module_*.xml
    - Each hardware module has its own directory taken from <module /> node and @name attribute.
    - Inside each module directory, subfolders use the naming convention `fvXX_YY`.
 - Files clu_GATE_ALARM_*.xml
-   - classes created from <clu /> node go to src/gate-alarm directory
-   - src/gate-alarm contains subfolders with versions
-   - each version folder contains TS classes
-   - file with TS classes is named gate-alarm.ts
+   - wrappers go to src/gate-alarm/<version> directories
+   - each version folder contains TS wrapper
+   - file with TS wrappers is named gate-alarm.ts   
    - apply same rules for all <clu className="GATE"/> nodes
-- Files clu_zwave_2_*.xml
-   - classes created from <clu /> node go to src/clu-zwave-2 directory
-   - src/clu-zwave-2 contains subfolders with versions
-   - each version folder contains TS classes
-   - file with TS classes is named clu-zwave-2.ts
-   - apply same rules for all clu_zwave_ft*.xml
+- Files clu_ZWAVE_2_*.xml
+   - wrappers go to src/clu-zwave-2/<version> directories
+   - each version folder contains TS wrapper
+   - file with TS wrappers is named clu-zwave-2.ts
+   - additionally create TS classes in src/clu-zwave-2/<version> folders for /clu/objects nodes. Find proper object_*.xml file, match by /clu/objects/object/@name and /clu/objects/object/@version
+   - apply same rules for all clu_ZWAVE_ft*.xml (TS classes for these go to src/clu-zwave/<version>, including the /clu/objects co-location rule above)
 
-- All GATE class (@className="GATE") files go to gate folder
-- All non GATE class files go to clu folder
+
 
 ### Core Pattern
 
