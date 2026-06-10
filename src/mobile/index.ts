@@ -679,6 +679,161 @@ export class MobileScript {
     }
 }
 
+export interface RollerShutterLike {
+    moveUp: (miliseconds: number) => void;
+    moveDown: (miliseconds: number) => void;
+    start: (miliseconds: number) => void;
+    stop: () => void;
+    hold: () => void;
+    holdUp: () => void;
+    holdDown: () => void;
+    setPosition: (position: number, lamel?: number) => void;
+    setLamelPosition: (position: number) => void;
+    setRollerBlocked: (state: number) => boolean;
+    setLamelMoveTimeout: (timeout: number) => void;
+    setBlindsUpMaxTime: (timeout: number) => void;
+    setBlindsDownMaxTime: (timeout: number) => void;
+    setMechanicalOffset: (offset: number) => void;
+    readonly state: number;
+    readonly up: boolean;
+    readonly down: boolean;
+    readonly position: number;
+    readonly lamelPosition: number;
+    readonly lamelMoveTimeout: number;
+    readonly blindsUpMaxTime: number;
+    readonly blindsDownMaxTime: number;
+    readonly mechanicalOffset: number;
+}
+
+const RollerShutterFeatures = {
+    State: 0,
+    Up: 3,
+    Down: 4,
+    Position: 7,
+    LamelPosition: 8,
+    LamelMoveTimeout: 10,
+    BlindsUpMaxTime: 14,
+    BlindsDownMaxTime: 15,
+    MechanicalOffset: 16
+} as const;
+
+const RollerShutterMethods = {
+    MoveUp: 0,
+    MoveDown: 1,
+    Start: 2,
+    Stop: 3,
+    Hold: 4,
+    HoldUp: 5,
+    HoldDown: 6,
+    SetLamelPosition: 9,
+    SetPosition: 10,
+    SetRollerBlocked: 13,
+    SetLamelMoveTimeout: 10,
+    SetBlindsUpMaxTime: 14,
+    SetBlindsDownMaxTime: 15,
+    SetMechanicalOffset: 16
+} as const;
+
+export class MobileRollerShutter {
+    private readonly object: MobileObject;
+
+    constructor(required: { clu: MobileNamed; rollerShutter: MobileNamed<RollerShutterLike> }) {
+        this.object = new MobileObject({ clu: required.clu, object: required.rollerShutter });
+    }
+
+    get state(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.State);
+    }
+
+    get up(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.Up);
+    }
+
+    get down(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.Down);
+    }
+
+    get position(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.Position);
+    }
+
+    get lamelPosition(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.LamelPosition);
+    }
+
+    get lamelMoveTimeout(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.LamelMoveTimeout);
+    }
+
+    get blindsUpMaxTime(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.BlindsUpMaxTime);
+    }
+
+    get blindsDownMaxTime(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.BlindsDownMaxTime);
+    }
+
+    get mechanicalOffset(): MobileObjectReference {
+        return this.object.attribute(RollerShutterFeatures.MechanicalOffset);
+    }
+
+    moveUp(time: MobileActionValue = 0): MobileAction {
+        return this.object.method(RollerShutterMethods.MoveUp, time);
+    }
+
+    moveDown(time: MobileActionValue = 0): MobileAction {
+        return this.object.method(RollerShutterMethods.MoveDown, time);
+    }
+
+    start(time: MobileActionValue = 0): MobileAction {
+        return this.object.method(RollerShutterMethods.Start, time);
+    }
+
+    stop(): MobileAction {
+        return this.object.method(RollerShutterMethods.Stop);
+    }
+
+    hold(): MobileAction {
+        return this.object.method(RollerShutterMethods.Hold);
+    }
+
+    holdUp(): MobileAction {
+        return this.object.method(RollerShutterMethods.HoldUp);
+    }
+
+    holdDown(): MobileAction {
+        return this.object.method(RollerShutterMethods.HoldDown);
+    }
+
+    setPosition(value: MobileActionValue = "$value$"): MobileAction {
+        return this.object.method(RollerShutterMethods.SetPosition, value);
+    }
+
+    setLamelPosition(value: MobileActionValue = "$value$"): MobileAction {
+        return this.object.method(RollerShutterMethods.SetLamelPosition, value);
+    }
+
+    setRollerBlocked(value: MobileActionValue = "$value$"): MobileAction {
+        return this.object.method(RollerShutterMethods.SetRollerBlocked, value);
+    }
+
+    setLamelMoveTimeout(value: MobileActionValue = "$value$"): MobileAction {
+        return this.object.method(RollerShutterMethods.SetLamelMoveTimeout, value);
+    }
+
+    setBlindsUpMaxTime(value: MobileActionValue = "$value$"): MobileAction {
+        return this.object.method(RollerShutterMethods.SetBlindsUpMaxTime, value);
+    }
+
+    setBlindsDownMaxTime(value: MobileActionValue = "$value$"): MobileAction {
+        return this.object.method(RollerShutterMethods.SetBlindsDownMaxTime, value);
+    }
+
+    setMechanicalOffset(value: MobileActionValue = "$value$"): MobileAction {
+        return this.object.method(RollerShutterMethods.SetMechanicalOffset, value);
+    }
+}
+
 export class MobileMonostableButtonComponent implements MobileMonostableButton {
     type: "BUTTON_MONOSTABLE" = "BUTTON_MONOSTABLE";
     rowId = 0;
