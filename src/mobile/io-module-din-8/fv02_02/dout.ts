@@ -4,8 +4,7 @@ import {
     MobileActionTypes,
     MobileNamed,
     MobileObjectReference,
-    MobileTarget,
-    mobileTarget
+    MobileTarget
 } from "../../index";
 
 // Structural stand-in for the CLU-side DOut wrapper (io-module-din-8 fv02_02):
@@ -25,10 +24,13 @@ const ValueFeature = 0;
 // Mobile-side counterpart of the DOut wrapper: builds references/actions for
 // MyGrenton widgets (serialized to data.json) instead of touching the device.
 export class MobileDOut {
-    constructor(
-        private readonly cluName: string,
-        private readonly objectName: string
-    ) {}
+    private readonly cluName: string;
+    private readonly objectName: string;
+
+    constructor(clu: MobileNamed, dout: MobileNamed<DOutLike>) {
+        this.cluName = clu.name;
+        this.objectName = dout.name;
+    }
 
     // Reference to the Value feature - displays the current output state.
     get value(): MobileObjectReference {
@@ -45,9 +47,6 @@ export class MobileDOut {
     }
 
     private target(): MobileTarget {
-        return mobileTarget(this.cluName, this.objectName, ValueFeature);
+        return new MobileTarget(this.cluName, this.objectName, ValueFeature);
     }
 }
-
-export const mobileDOut = (clu: MobileNamed, dout: MobileNamed<DOutLike>): MobileDOut =>
-    new MobileDOut(clu.name, dout.name);

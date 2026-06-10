@@ -496,13 +496,6 @@ export type MobileWidget =
     | MobileValueDoubleWidget
     | MobileValueV2Widget;
 
-let nextMobileId = Date.now();
-
-function createMobileId(): number {
-    nextMobileId += 1;
-    return nextMobileId;
-}
-
 function emptyReference(): MobileObjectReference {
     return {
         cluId: null,
@@ -519,68 +512,6 @@ function emptyAction(type: MobileActionType = "CLICK", callType: MobileCallType 
         valueFormattedForDto: value,
         type,
         value
-    };
-}
-
-function emptyBistableButton(type: "BUTTON_BISTABLE" | "BUTTON_BISTABLE_V2" = "BUTTON_BISTABLE"): MobileBistableButton {
-    return {
-        image: "bulb",
-        actionOff: emptyAction("OFF", "METHOD", "0"),
-        label: "",
-        indication: "ON_OFF",
-        offIndication: "Off",
-        state: emptyReference(),
-        type,
-        actionOn: emptyAction("ON", "METHOD", "1"),
-        onIndication: "On",
-        rowId: 0
-    };
-}
-
-function emptyMonostableButton(): MobileMonostableButton {
-    return {
-        actionClick: emptyAction(),
-        label: "",
-        type: "BUTTON_MONOSTABLE",
-        rowId: 0
-    };
-}
-
-function emptySliderComponent(type: MobileSliderComponent["type"]): MobileSliderComponent {
-    return {
-        unit: "UNKNOWN",
-        min: 0,
-        max: 1,
-        actionClick: emptyAction(),
-        label: "",
-        state: emptyReference(),
-        type,
-        rowId: 0
-    };
-}
-
-function emptyValueComponent(): MobileValueComponent {
-    return {
-        unit: "UNKNOWN",
-        valueType: "STRING",
-        precision: 2,
-        icon: "value",
-        label: "",
-        value: emptyReference()
-    };
-}
-
-function emptyContactSensorComponent(): MobileContactSensorComponent {
-    return {
-        icon: "lock",
-        label: "",
-        offIndication: "Wyłączone",
-        reverseState: false,
-        onIndication: "Włączone",
-        object: {
-            value: emptyReference(),
-            clickAction: emptyAction()
-        }
     };
 }
 
@@ -684,19 +615,16 @@ export class MobileTarget {
     }
 }
 
-export const mobileTarget = (
-    cluName: string,
-    objectName: string,
-    index: MobileTargetIndex = null
-): MobileTarget => new MobileTarget(cluName, objectName, index);
-
-// Named handle to a Grenton object bound to its CLU, identified by OM names.
-// Build references/actions for mobile widgets from it.
+// Named handle to a Grenton object bound to its CLU, built from registry
+// entries. Build references/actions for mobile widgets from it.
 export class MobileObject {
-    constructor(
-        private readonly cluName: string,
-        private readonly objectName: string
-    ) {}
+    private readonly cluName: string;
+    private readonly objectName: string;
+
+    constructor(clu: MobileNamed, object: MobileNamed) {
+        this.cluName = clu.name;
+        this.objectName = object.name;
+    }
 
     target(index: MobileTargetIndex = null): MobileTarget {
         return new MobileTarget(this.cluName, this.objectName, index);
@@ -719,18 +647,17 @@ export class MobileObject {
     }
 }
 
-export const mobileObject = (
-    cluName: string,
-    objectName: string
-): MobileObject => new MobileObject(cluName, objectName);
-
 // Reference to a CLU script, invoked by name. Used for SCRIPT-type widget actions
 // (the script name is carried in `objectName`, with `callType: "SCRIPT"`).
 export class MobileScript {
+    private readonly cluName: string;
+
     constructor(
-        private readonly cluName: string,
+        clu: MobileNamed,
         public name: string
-    ) {}
+    ) {
+        this.cluName = clu.name;
+    }
 
     action(type: MobileActionType = MobileActionTypes.Click): MobileAction {
         return {
@@ -753,203 +680,199 @@ export class MobileScript {
     }
 }
 
-export const mobileScript = (
-    cluName: string,
-    name: string
-): MobileScript => new MobileScript(cluName, name);
-
 export class MobileMonostableButtonComponent implements MobileMonostableButton {
     type: "BUTTON_MONOSTABLE" = "BUTTON_MONOSTABLE";
-    rowId: number;
+    rowId = 0;
+    label!: string;
+    actionClick!: MobileAction;
 
     constructor(
-        public label: string,
-        public actionClick: MobileAction,
-        config: Partial<Pick<MobileMonostableButton, "rowId">> = {}
+        required: Pick<MobileMonostableButton, "label" | "actionClick">,
+        optional: Partial<Pick<MobileMonostableButton, "rowId">> = {}
     ) {
-        this.rowId = config.rowId ?? 0;
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileBistableButtonComponent implements MobileBistableButton {
     type: "BUTTON_BISTABLE" = "BUTTON_BISTABLE";
-    rowId: number;
-    image: MobileBistableButton["image"];
-    offIndication: string;
-    onIndication: string;
+    rowId = 0;
+    image: MobileBistableButton["image"] = MobileIcons.Bulb;
+    offIndication = "Off";
+    onIndication = "On";
     indication = "ON_OFF";
+    label!: string;
+    state!: MobileObjectReference;
+    actionOn!: MobileAction;
+    actionOff!: MobileAction;
 
     constructor(
-        public label: string,
-        public state: MobileObjectReference,
-        public actionOn: MobileAction,
-        public actionOff: MobileAction,
-        config: Partial<Pick<MobileBistableButton, "rowId" | "image" | "offIndication" | "onIndication">> = {}
+        required: Pick<MobileBistableButton, "label" | "state" | "actionOn" | "actionOff">,
+        optional: Partial<Pick<MobileBistableButton, "rowId" | "image" | "offIndication" | "onIndication">> = {}
     ) {
-        this.rowId = config.rowId ?? 0;
-        this.image = config.image ?? MobileIcons.Bulb;
-        this.offIndication = config.offIndication ?? "Off";
-        this.onIndication = config.onIndication ?? "On";
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileBistableButtonV2Component implements MobileBistableButton {
     type: "BUTTON_BISTABLE_V2" = "BUTTON_BISTABLE_V2";
-    rowId: number;
-    image: MobileBistableButton["image"];
-    offIndication: string;
-    onIndication: string;
+    rowId = 0;
+    image: MobileBistableButton["image"] = MobileIcons.Bulb;
+    offIndication = "Off";
+    onIndication = "On";
+    label!: string;
+    state!: MobileObjectReference;
+    actionOn!: MobileAction;
+    actionOff!: MobileAction;
 
     constructor(
-        public label: string,
-        public state: MobileObjectReference,
-        public actionOn: MobileAction,
-        public actionOff: MobileAction,
-        config: Partial<Pick<MobileBistableButton, "rowId" | "image" | "offIndication" | "onIndication">> = {}
+        required: Pick<MobileBistableButton, "label" | "state" | "actionOn" | "actionOff">,
+        optional: Partial<Pick<MobileBistableButton, "rowId" | "image" | "offIndication" | "onIndication">> = {}
     ) {
-        this.rowId = config.rowId ?? 0;
-        this.image = config.image ?? MobileIcons.Bulb;
-        this.offIndication = config.offIndication ?? "Off";
-        this.onIndication = config.onIndication ?? "On";
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileBistableClickButtonComponent implements MobileBistableClickButton {
     type: "BUTTON_BISTABLE_CLICK" = "BUTTON_BISTABLE_CLICK";
-    rowId: number;
-    image: MobileBistableClickButton["image"];
-    indication: string;
+    rowId = 0;
+    image: MobileBistableClickButton["image"] = MobileIcons.Bulb;
+    indication = "ON_OFF";
+    label!: string;
+    state!: MobileObjectReference;
+    actionClick!: MobileAction;
 
     constructor(
-        public label: string,
-        public state: MobileObjectReference,
-        public actionClick: MobileAction,
-        config: Partial<Pick<MobileBistableClickButton, "rowId" | "image" | "indication">> = {}
+        required: Pick<MobileBistableClickButton, "label" | "state" | "actionClick">,
+        optional: Partial<Pick<MobileBistableClickButton, "rowId" | "image" | "indication">> = {}
     ) {
-        this.rowId = config.rowId ?? 0;
-        this.image = config.image ?? MobileIcons.Bulb;
-        this.indication = config.indication ?? "ON_OFF";
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileBackgroundComponent implements MobileBackground {
+    image!: MobileBackgroundImage;
+    color: MobileColor = MobileColors.Blue;
+
     constructor(
-        public image: MobileBackgroundImage,
-        public color: MobileColor = MobileColors.Blue
-    ) {}
+        required: Pick<MobileBackground, "image">,
+        optional: Partial<Pick<MobileBackground, "color">> = {}
+    ) {
+        Object.assign(this, required, optional);
+    }
 }
 
+type MobileSliderRequired = Pick<MobileSliderComponent, "label" | "state" | "actionClick">;
+type MobileSliderOptional = Partial<Pick<MobileSliderComponent, "rowId" | "unit" | "min" | "max">>;
+
 export class MobileSliderComponentBase implements MobileSliderComponent {
-    rowId: number;
-    unit: MobileUnit;
-    min: number;
-    max: number;
+    rowId = 0;
+    unit: MobileUnit = MobileUnits.Unknown;
+    min = 0;
+    max = 1;
+    label!: string;
+    state!: MobileObjectReference;
+    actionClick!: MobileAction;
 
     constructor(
         public type: MobileSliderComponent["type"],
-        public label: string,
-        public state: MobileObjectReference,
-        public actionClick: MobileAction,
-        config: Partial<Pick<MobileSliderComponent, "rowId" | "unit" | "min" | "max">> = {}
+        required: MobileSliderRequired,
+        optional: MobileSliderOptional = {}
     ) {
-        this.rowId = config.rowId ?? 0;
-        this.unit = config.unit ?? MobileUnits.Unknown;
-        this.min = config.min ?? 0;
-        this.max = config.max ?? 1;
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileBrightnessSliderComponent extends MobileSliderComponentBase {
-    constructor(label: string, state: MobileObjectReference, actionClick: MobileAction, config: Partial<Pick<MobileSliderComponent, "rowId" | "unit" | "min" | "max">> = {}) {
-        super("SLIDER_BRIGHTNESS", label, state, actionClick, config);
+    constructor(required: MobileSliderRequired, optional: MobileSliderOptional = {}) {
+        super("SLIDER_BRIGHTNESS", required, optional);
     }
 }
 
 export class MobileHueSliderComponent extends MobileSliderComponentBase {
-    constructor(label: string, state: MobileObjectReference, actionClick: MobileAction, config: Partial<Pick<MobileSliderComponent, "rowId" | "unit" | "min" | "max">> = {}) {
-        super("SLIDER_HUE", label, state, actionClick, config);
+    constructor(required: MobileSliderRequired, optional: MobileSliderOptional = {}) {
+        super("SLIDER_HUE", required, optional);
     }
 }
 
 export class MobileSaturationSliderComponent extends MobileSliderComponentBase {
-    constructor(label: string, state: MobileObjectReference, actionClick: MobileAction, config: Partial<Pick<MobileSliderComponent, "rowId" | "unit" | "min" | "max">> = {}) {
-        super("SLIDER_SATURATION", label, state, actionClick, config);
+    constructor(required: MobileSliderRequired, optional: MobileSliderOptional = {}) {
+        super("SLIDER_SATURATION", required, optional);
     }
 }
 
 export class MobileColorTemperatureSliderComponent extends MobileSliderComponentBase {
-    constructor(label: string, state: MobileObjectReference, actionClick: MobileAction, config: Partial<Pick<MobileSliderComponent, "rowId" | "unit" | "min" | "max">> = {}) {
-        super("SLIDER_COLOR_TEMP", label, state, actionClick, config);
+    constructor(required: MobileSliderRequired, optional: MobileSliderOptional = {}) {
+        super("SLIDER_COLOR_TEMP", required, optional);
     }
 }
 
 export class MobileValueDisplayComponent implements MobileValueComponent {
-    valueType: MobileValueType;
-    unit: MobileUnit;
-    precision: number;
-    icon: MobileIcon;
+    valueType: MobileValueType = MobileValueTypes.Float;
+    unit: MobileUnit = MobileUnits.Unknown;
+    precision = 0;
+    icon: MobileIcon = MobileIcons.Value;
+    label!: string;
+    value!: MobileObjectReference;
 
     constructor(
-        public label: string,
-        public value: MobileObjectReference,
-        config: Partial<Pick<MobileValueComponent, "valueType" | "unit" | "precision" | "icon">> = {}
+        required: Pick<MobileValueComponent, "label" | "value">,
+        optional: Partial<Pick<MobileValueComponent, "valueType" | "unit" | "precision" | "icon">> = {}
     ) {
-        this.valueType = config.valueType ?? MobileValueTypes.Float;
-        this.unit = config.unit ?? MobileUnits.Unknown;
-        this.precision = config.precision ?? 0;
-        this.icon = config.icon ?? MobileIcons.Value;
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileContactSensorDisplayComponent implements MobileContactSensorComponent {
-    icon: MobileIcon;
-    offIndication: string;
-    reverseState: boolean;
-    onIndication: string;
-    object: MobileContactSensorComponent["object"];
+    icon: MobileIcon = MobileIcons.Lock;
+    offIndication = "Off";
+    reverseState = false;
+    onIndication = "On";
+    label!: string;
+    object!: MobileContactSensorComponent["object"];
 
     constructor(
-        public label: string,
-        value: MobileObjectReference,
-        clickAction: MobileAction,
-        config: Partial<Pick<MobileContactSensorComponent, "icon" | "offIndication" | "reverseState" | "onIndication">> = {}
+        required: { label: string; value: MobileObjectReference; clickAction: MobileAction },
+        optional: Partial<Pick<MobileContactSensorComponent, "icon" | "offIndication" | "reverseState" | "onIndication">> = {}
     ) {
-        this.icon = config.icon ?? MobileIcons.Lock;
-        this.offIndication = config.offIndication ?? "Off";
-        this.reverseState = config.reverseState ?? false;
-        this.onIndication = config.onIndication ?? "On";
-        this.object = { value, clickAction };
+        this.label = required.label;
+        this.object = { value: required.value, clickAction: required.clickAction };
+        Object.assign(this, optional);
     }
 }
 
 export class MobileIntercomButton1Component implements MobileIntercomButton {
     type: "INTERCOM_BUTTON_1" = "INTERCOM_BUTTON_1";
-    rowId: number;
+    rowId = 0;
     enabled?: boolean;
+    label!: string;
 
     constructor(
-        public label: string,
-        config: Partial<Pick<MobileIntercomButton, "rowId" | "enabled">> = {}
+        required: Pick<MobileIntercomButton, "label">,
+        optional: Partial<Pick<MobileIntercomButton, "rowId" | "enabled">> = {}
     ) {
-        this.rowId = config.rowId ?? 0;
-        if (config.enabled !== undefined) this.enabled = config.enabled;
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileIntercomButton2Component implements MobileIntercomButton {
     type: "INTERCOM_BUTTON_2" = "INTERCOM_BUTTON_2";
-    rowId: number;
+    rowId = 0;
     enabled?: boolean;
+    label!: string;
 
     constructor(
-        public label: string,
-        config: Partial<Pick<MobileIntercomButton, "rowId" | "enabled">> = {}
+        required: Pick<MobileIntercomButton, "label">,
+        optional: Partial<Pick<MobileIntercomButton, "rowId" | "enabled">> = {}
     ) {
-        this.rowId = config.rowId ?? 0;
-        if (config.enabled !== undefined) this.enabled = config.enabled;
+        Object.assign(this, required, optional);
     }
 }
 
+// All widget/page/interface constructors follow the same convention: the first
+// argument carries everything the OM editor requires (ids, labels and device/
+// script bindings), the second is an optional bag of cosmetic fields that have
+// sensible defaults.
 export class MobileInterface {
     pages: MobilePage[] = [];
     pushNotifications: null = null;
@@ -957,13 +880,16 @@ export class MobileInterface {
     icon: MobileInterfaceIcon = MobileInterfaceIcons.Home1;
     blockCloud = false;
     theme: MobileColor = MobileColors.Blue;
-    id = "";
-    label = "";
+    id!: string;
+    label!: string;
     cloudSharing: null = null;
     darkLogoPath: string | null = null;
 
-    constructor(config?: Partial<MobileInterface>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileInterface, "id" | "label">,
+        optional: Partial<Pick<MobileInterface, "icon" | "theme" | "blockCloud" | "lightLogoPath" | "darkLogoPath">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 
     AddPage(page: MobilePage): this {
@@ -978,18 +904,17 @@ export class MobileInterface {
 
 export class MobilePage {
     icon: MobileIcon = MobileIcons.Default;
-    id = createMobileId();
-    label = "";
+    id!: number;
+    label!: string;
     widgets: MobileWidget[] = [];
-    pageId = this.id;
+    pageId!: number;
 
-    constructor(labelOrConfig?: string | Partial<MobilePage>) {
-        if (typeof labelOrConfig === "string") {
-            this.label = labelOrConfig;
-        } else {
-            Object.assign(this, labelOrConfig);
-            this.pageId = labelOrConfig?.pageId ?? this.id;
-        }
+    constructor(
+        required: Pick<MobilePage, "id" | "label">,
+        optional: Partial<Pick<MobilePage, "icon" | "pageId">> = {}
+    ) {
+        Object.assign(this, required, optional);
+        this.pageId = optional.pageId ?? required.id;
     }
 
     AddWidget(widget: MobileWidget): this {
@@ -1003,295 +928,354 @@ export class MobilePage {
 }
 
 export class MobileDimmerV2Widget {
-    id = createMobileId();
+    id!: number;
     type: "DIMMER_V2" = "DIMMER_V2";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Dimmer;
-    label = "";
+    label!: string;
     min = 0;
     max = 255;
     precision = 0;
-    object: MobileDimmerV2Widget["object"] = {
-        onAction: emptyAction("CLICK", "METHOD", "255"),
-        offAction: emptyAction("CLICK", "METHOD", "0"),
-        setValueAction: emptyAction("CLICK", "METHOD", "$value$"),
-        value: emptyReference()
-    };
+    object!: MobileDimmerV2Widget["object"];
 
-    constructor(config?: Partial<MobileDimmerV2Widget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileDimmerV2Widget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileDimmerV2Widget, "icon" | "min" | "max" | "precision" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileOnOffWidget {
-    id = createMobileId();
+    id!: number;
     type: "ON_OFF" = "ON_OFF";
     dtoId: string | null = null;
-    buttonBistable = emptyBistableButton("BUTTON_BISTABLE") as MobileBistableButton & { type: "BUTTON_BISTABLE" };
+    buttonBistable!: MobileBistableButton & { type: "BUTTON_BISTABLE" };
 
-    constructor(config?: Partial<MobileOnOffWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileOnOffWidget, "id" | "buttonBistable">,
+        optional: Partial<Pick<MobileOnOffWidget, "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileOnOffDoubleWidget {
-    id = createMobileId();
+    id!: number;
     type: "ON_OFF_DOUBLE" = "ON_OFF_DOUBLE";
     dtoId: string | null = null;
-    buttonBistableFirst = emptyBistableButton("BUTTON_BISTABLE_V2") as MobileBistableButton & { type: "BUTTON_BISTABLE_V2" };
-    buttonBistableSecond = emptyBistableButton("BUTTON_BISTABLE_V2") as MobileBistableButton & { type: "BUTTON_BISTABLE_V2" };
+    buttonBistableFirst!: MobileBistableButton & { type: "BUTTON_BISTABLE_V2" };
+    buttonBistableSecond!: MobileBistableButton & { type: "BUTTON_BISTABLE_V2" };
 
-    constructor(config?: Partial<MobileOnOffDoubleWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileOnOffDoubleWidget, "id" | "buttonBistableFirst" | "buttonBistableSecond">,
+        optional: Partial<Pick<MobileOnOffDoubleWidget, "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
-export class MobileRollerShutterV3Widget {
-    id = createMobileId();
-    type: "ROLLER_SHUTTER_V3" = "ROLLER_SHUTTER_V3";
-    dtoId: string | null = null;
-    icon: MobileIcon = MobileIcons.Blinds;
-    label = "";
-    object: MobileRollerShutterV3Object = {
-        mechanicalOffset: emptyReference(),
-        down: emptyReference(),
-        setPosition: emptyAction("CLICK", "METHOD", "$value$"),
-        hold: emptyAction(),
-        overcurrent: null,
-        lamelStart: emptyAction(),
-        voltageType: null,
-        reversePosition: emptyReference(),
-        state: emptyReference(),
-        up: emptyReference(),
-        calibration: emptyAction("CLICK", "METHOD", "1"),
-        moveUp: emptyAction("CLICK", "METHOD", "0"),
-        setMechanicalOffset: emptyAction("CLICK", "PSEUDO_METHOD", "$value$"),
-        blindsUpMaxTime: emptyReference(),
-        setRollerBlocked: emptyAction("CLICK", "METHOD", "0"),
-        setBlindsUpMaxTime: emptyAction("CLICK", "PSEUDO_METHOD", "$value$"),
-        loadCurrent: null,
-        start: emptyAction("CLICK", "METHOD", "0"),
-        setLamelMoveTimeout: emptyAction("CLICK", "PSEUDO_METHOD", "$value$"),
-        moveDown: emptyAction("CLICK", "METHOD", "0"),
-        lamelPosition: emptyReference(),
-        setLamelPosition: emptyAction("CLICK", "METHOD", "$value$"),
-        stop: emptyAction(),
-        distributedLogicGroup: emptyReference(),
-        blindsDownMaxTime: emptyReference(),
-        holdDown: emptyAction(),
-        position: emptyReference(),
-        lamelMoveTimeout: emptyReference(),
-        holdUp: emptyAction(),
-        setBlindsDownMaxTime: emptyAction("CLICK", "PSEUDO_METHOD", "$value$")
-    };
+// The fields the OM widget editor marks as mandatory for ROLLER_SHUTTER_V3.
+export interface MobileRollerShutterV3Required {
+    id: number;
+    icon: MobileIcon;
+    label: string;
+    state: MobileObjectReference;
+    position: MobileObjectReference;
+    lamelPosition: MobileObjectReference;
+    moveUp: MobileAction;
+    moveDown: MobileAction;
+    start: MobileAction;
+    setPosition: MobileAction;
+    setLamelPosition: MobileAction;
+    setRollerBlocked: MobileAction;
+}
 
-    constructor(config?: Partial<MobileRollerShutterV3Widget>) {
-        Object.assign(this, config);
+// First argument carries everything the OM editor requires; the second is an
+// optional bag of the remaining object fields (and dtoId), which default to
+// empty entities exactly as OM's own template leaves them.
+export class MobileRollerShutterV3Widget {
+    id: number;
+    type: "ROLLER_SHUTTER_V3" = "ROLLER_SHUTTER_V3";
+    dtoId: string | null;
+    icon: MobileIcon;
+    label: string;
+    object: MobileRollerShutterV3Object;
+
+    constructor(
+        required: MobileRollerShutterV3Required,
+        optional: Partial<MobileRollerShutterV3Object> & { dtoId?: string | null } = {}
+    ) {
+        const { id, icon, label, ...requiredObject } = required;
+        const { dtoId, ...optionalObject } = optional;
+        this.id = id;
+        this.icon = icon;
+        this.label = label;
+        this.dtoId = dtoId ?? null;
+        this.object = {
+            mechanicalOffset: emptyReference(),
+            down: emptyReference(),
+            hold: emptyAction(),
+            overcurrent: null,
+            lamelStart: emptyAction(),
+            voltageType: null,
+            reversePosition: emptyReference(),
+            up: emptyReference(),
+            calibration: emptyAction("CLICK", "METHOD", "1"),
+            setMechanicalOffset: emptyAction("CLICK", "PSEUDO_METHOD", "$value$"),
+            blindsUpMaxTime: emptyReference(),
+            setBlindsUpMaxTime: emptyAction("CLICK", "PSEUDO_METHOD", "$value$"),
+            loadCurrent: null,
+            setLamelMoveTimeout: emptyAction("CLICK", "PSEUDO_METHOD", "$value$"),
+            stop: emptyAction(),
+            distributedLogicGroup: emptyReference(),
+            blindsDownMaxTime: emptyReference(),
+            holdDown: emptyAction(),
+            lamelMoveTimeout: emptyReference(),
+            holdUp: emptyAction(),
+            setBlindsDownMaxTime: emptyAction("CLICK", "PSEUDO_METHOD", "$value$"),
+            ...requiredObject,
+            ...optionalObject
+        };
     }
 }
 
 export class MobileValueV2Widget {
-    id = createMobileId();
+    id!: number;
     type: "VALUE_V2" = "VALUE_V2";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Value;
-    label = "";
+    label!: string;
     unit: MobileUnit = "UNKNOWN";
     valueType: MobileValueType = "STRING";
     precision = 2;
-    value = emptyReference();
+    value!: MobileObjectReference;
 
-    constructor(config?: Partial<MobileValueV2Widget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileValueV2Widget, "id" | "label" | "value">,
+        optional: Partial<Pick<MobileValueV2Widget, "icon" | "unit" | "valueType" | "precision" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileSceneWidget {
-    id = createMobileId();
+    id!: number;
     type: "SCENE" = "SCENE";
     dtoId: string | null = null;
     background: MobileBackground = { image: MobileBackgroundImages.LockDoor, color: MobileColors.Blue };
-    buttonMonostable = emptyMonostableButton();
+    buttonMonostable!: MobileMonostableButton;
 
-    constructor(config?: Partial<MobileSceneWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileSceneWidget, "id" | "buttonMonostable">,
+        optional: Partial<Pick<MobileSceneWidget, "background" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileHeaderWidget {
-    id = createMobileId();
+    id!: number;
     type: "HEADER" = "HEADER";
     dtoId: string | null = null;
-    text = {
-        image: null as string | null,
-        label: "",
-        type: "HEADER" as const,
-        rowId: 0
+    text!: {
+        image: string | null;
+        label: string;
+        type: "HEADER";
+        rowId: number;
     };
 
-    constructor(config?: Partial<MobileHeaderWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileHeaderWidget, "id"> & { label: string },
+        optional: { image?: string | null; rowId?: number; dtoId?: string | null } = {}
+    ) {
+        this.id = required.id;
+        this.dtoId = optional.dtoId ?? null;
+        this.text = {
+            image: optional.image ?? null,
+            label: required.label,
+            type: "HEADER",
+            rowId: optional.rowId ?? 0
+        };
     }
 }
 
 export class MobileValueDoubleWidget {
-    id = createMobileId();
+    id!: number;
     type: "VALUE_DOUBLE" = "VALUE_DOUBLE";
     dtoId: string | null = null;
-    componentLeft = emptyValueComponent();
-    componentRight = emptyValueComponent();
+    componentLeft!: MobileValueComponent;
+    componentRight!: MobileValueComponent;
 
-    constructor(config?: Partial<MobileValueDoubleWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileValueDoubleWidget, "id" | "componentLeft" | "componentRight">,
+        optional: Partial<Pick<MobileValueDoubleWidget, "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileSceneDoubleWidget {
-    id = createMobileId();
+    id!: number;
     type: "SCENE_DOUBLE" = "SCENE_DOUBLE";
     dtoId: string | null = null;
     background: MobileBackground = { image: "gate_2", color: "blue" };
-    buttonMonostableFirst = emptyMonostableButton();
-    buttonMonostableSecond = emptyMonostableButton();
+    buttonMonostableFirst!: MobileMonostableButton;
+    buttonMonostableSecond!: MobileMonostableButton;
 
-    constructor(config?: Partial<MobileSceneDoubleWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileSceneDoubleWidget, "id" | "buttonMonostableFirst" | "buttonMonostableSecond">,
+        optional: Partial<Pick<MobileSceneDoubleWidget, "background" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileLedWidget {
-    id = createMobileId();
+    id!: number;
     type: "LED" = "LED";
     dtoId: string | null = null;
-    buttonBistable = emptyBistableButton("BUTTON_BISTABLE") as MobileBistableButton & { type: "BUTTON_BISTABLE" };
-    sliderBrightness = emptySliderComponent("SLIDER_BRIGHTNESS") as MobileSliderComponent & { type: "SLIDER_BRIGHTNESS" };
-    sliderHue = emptySliderComponent("SLIDER_HUE") as MobileSliderComponent & { type: "SLIDER_HUE" };
-    sliderSaturation = emptySliderComponent("SLIDER_SATURATION") as MobileSliderComponent & { type: "SLIDER_SATURATION" };
+    buttonBistable!: MobileBistableButton & { type: "BUTTON_BISTABLE" };
+    sliderBrightness!: MobileSliderComponent & { type: "SLIDER_BRIGHTNESS" };
+    sliderHue!: MobileSliderComponent & { type: "SLIDER_HUE" };
+    sliderSaturation!: MobileSliderComponent & { type: "SLIDER_SATURATION" };
 
-    constructor(config?: Partial<MobileLedWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileLedWidget, "id" | "buttonBistable" | "sliderBrightness" | "sliderHue" | "sliderSaturation">,
+        optional: Partial<Pick<MobileLedWidget, "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileLedCctWidget {
-    id = createMobileId();
+    id!: number;
     type: "LED_CCT" = "LED_CCT";
     dtoId: string | null = null;
-    buttonBistable = emptyBistableButton("BUTTON_BISTABLE") as MobileBistableButton & { type: "BUTTON_BISTABLE" };
-    sliderBrightness = emptySliderComponent("SLIDER_BRIGHTNESS") as MobileSliderComponent & { type: "SLIDER_BRIGHTNESS" };
-    sliderColorTemp = emptySliderComponent("SLIDER_COLOR_TEMP") as MobileSliderComponent & { type: "SLIDER_COLOR_TEMP" };
+    buttonBistable!: MobileBistableButton & { type: "BUTTON_BISTABLE" };
+    sliderBrightness!: MobileSliderComponent & { type: "SLIDER_BRIGHTNESS" };
+    sliderColorTemp!: MobileSliderComponent & { type: "SLIDER_COLOR_TEMP" };
 
-    constructor(config?: Partial<MobileLedCctWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileLedCctWidget, "id" | "buttonBistable" | "sliderBrightness" | "sliderColorTemp">,
+        optional: Partial<Pick<MobileLedCctWidget, "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileRollerShutterWidget {
-    id = createMobileId();
+    id!: number;
     type: "ROLLER_SHUTTER" = "ROLLER_SHUTTER";
     dtoId: string | null = null;
-    buttonBistableClick: MobileBistableClickButton = {
-        image: MobileIcons.Blinds,
-        actionClick: emptyAction("CLICK", "METHOD", "$value$"),
-        label: "",
-        indication: "ON_OFF",
-        state: emptyReference(),
-        type: "BUTTON_BISTABLE_CLICK",
-        rowId: 0
-    };
+    buttonBistableClick!: MobileBistableClickButton;
     status: null = null;
 
-    constructor(config?: Partial<MobileRollerShutterWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileRollerShutterWidget, "id" | "buttonBistableClick">,
+        optional: Partial<Pick<MobileRollerShutterWidget, "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileCameraWidget {
-    id = createMobileId();
+    id!: number;
     type: "CAMERA" = "CAMERA";
     dtoId: string | null = null;
-    cameraStream: MobileCameraWidget["cameraStream"] = {
-        image: MobileIcons.Camera,
-        label: "",
-        type: "CAMERA_STREAM" as const,
-        url: "",
-        rowId: 0
+    cameraStream!: {
+        image: MobileIcon;
+        label: string;
+        type: "CAMERA_STREAM";
+        url: string;
+        rowId: number;
     };
 
-    constructor(config?: Partial<MobileCameraWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileCameraWidget, "id"> & { label: string; url: string },
+        optional: { image?: MobileIcon; rowId?: number; dtoId?: string | null } = {}
+    ) {
+        this.id = required.id;
+        this.dtoId = optional.dtoId ?? null;
+        this.cameraStream = {
+            image: optional.image ?? MobileIcons.Camera,
+            label: required.label,
+            type: "CAMERA_STREAM",
+            url: required.url,
+            rowId: optional.rowId ?? 0
+        };
     }
 }
 
 export class MobileSchedulerWidget {
-    id = createMobileId();
+    id!: number;
     type: "SCHEDULER" = "SCHEDULER";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Scheduler;
-    label = "";
-    setSchedule = emptyAction("CLICK", "ATTRIBUTE", "1");
-    setMax = emptyAction("CLICK", "ATTRIBUTE", "1");
-    max = emptyReference();
-    start = emptyAction("CLICK", "ATTRIBUTE", "1");
-    schedule = emptyReference();
-    setMin = emptyAction("CLICK", "ATTRIBUTE", "1");
-    min = emptyReference();
-    stop = emptyAction("CLICK", "ATTRIBUTE", "1");
-    state = emptyReference();
-    value = emptyReference();
+    label!: string;
+    setSchedule!: MobileAction;
+    setMax!: MobileAction;
+    max!: MobileObjectReference;
+    start!: MobileAction;
+    schedule!: MobileObjectReference;
+    setMin!: MobileAction;
+    min!: MobileObjectReference;
+    stop!: MobileAction;
+    state!: MobileObjectReference;
+    value!: MobileObjectReference;
 
-    constructor(config?: Partial<MobileSchedulerWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<
+            MobileSchedulerWidget,
+            "id" | "label" | "setSchedule" | "setMax" | "max" | "start" | "schedule" | "setMin" | "min" | "stop" | "state" | "value"
+        >,
+        optional: Partial<Pick<MobileSchedulerWidget, "icon" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileEventSchedulerWidget {
-    id = createMobileId();
+    id!: number;
     type: "EVENT_SCHEDULER" = "EVENT_SCHEDULER";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Scheduler;
-    label = "";
-    object: MobileEventSchedulerWidget["object"] = {
-        currentRule: emptyReference(),
-        ruleList: emptyReference(),
-        start: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        enableRule: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        ruleSpace: emptyReference(),
-        nextRule: emptyReference(),
-        deleteRule: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        disableRule: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        ruleCount: emptyReference(),
-        stop: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        addRule: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        getRule: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        state: emptyReference()
-    };
+    label!: string;
+    object!: MobileEventSchedulerWidget["object"];
 
-    constructor(config?: Partial<MobileEventSchedulerWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileEventSchedulerWidget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileEventSchedulerWidget, "icon" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileTextWidget {
-    id = createMobileId();
+    id!: number;
     type: "TEXT" = "TEXT";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Text;
-    label = "";
+    label!: string;
     iconVisible = true;
-    text = emptyReference();
+    text!: MobileObjectReference;
 
-    constructor(config?: Partial<MobileTextWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileTextWidget, "id" | "label" | "text">,
+        optional: Partial<Pick<MobileTextWidget, "icon" | "iconVisible" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
+// Multisensor channels stay optional: which sensors exist varies per device,
+// and absent channels keep the empty placeholder OM emits for them.
 export class MobileMultisensorWidget {
-    id = createMobileId();
+    id!: number;
     type: "MULTISENSOR" = "MULTISENSOR";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Multisensor;
-    label = "";
+    label!: string;
     labelVisible = true;
     objectAirCo2 = emptyMultisensorObject();
     objectAirVco = emptyMultisensorObject();
@@ -1301,176 +1285,140 @@ export class MobileMultisensorWidget {
     objectSound = emptyMultisensorObject();
     objectTemperature = emptyMultisensorObject();
 
-    constructor(config?: Partial<MobileMultisensorWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileMultisensorWidget, "id" | "label">,
+        optional: Partial<
+            Pick<
+                MobileMultisensorWidget,
+                | "icon"
+                | "labelVisible"
+                | "dtoId"
+                | "objectAirCo2"
+                | "objectAirVco"
+                | "objectHumidity"
+                | "objectLight"
+                | "objectPressure"
+                | "objectSound"
+                | "objectTemperature"
+            >
+        > = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileTvRemoteControlWidget {
-    id = createMobileId();
+    id!: number;
     type: "TV_REMOTE_CONTROL" = "TV_REMOTE_CONTROL";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Tv;
-    label = "";
+    label!: string;
     vodLabel = "";
-    object: MobileTvRemoteControlWidget["object"] = {
-        play: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        init: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        previousChannel: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        fastRewind: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        back: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        mute: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        vod: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        right: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        menu: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        down: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        off: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        nextChannel: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        pause: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        volumeDown: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        left: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        volumeUp: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        up: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        ok: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        fastForward: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        guide: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        on: emptyAction("CLICK", "ATTRIBUTE", "1")
-    };
+    object!: MobileTvRemoteControlWidget["object"];
 
-    constructor(config?: Partial<MobileTvRemoteControlWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileTvRemoteControlWidget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileTvRemoteControlWidget, "icon" | "vodLabel" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileThermostatV2Widget {
-    id = createMobileId();
+    id!: number;
     type: "THERMOSTAT_V2" = "THERMOSTAT_V2";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Temperature;
-    label = "";
+    label!: string;
     noOfFanSpeeds = 0;
-    object: MobileThermostatV2Widget["object"] = {
-        maxTemperature: emptyReference(),
-        setMaxTemperatureAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        fanControlOutValue: null,
-        currentTemperature: emptyReference(),
-        fanMode: emptyReference(),
-        setTargetTemperatureAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        setFanMode: null,
-        controlDirection: emptyReference(),
-        setModeAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        mode: emptyReference(),
-        controlOutValue: emptyReference(),
-        setMinTemperatureAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        targetTemperature: null,
-        minTemperature: emptyReference(),
-        setScheduleDataAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        setStateAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        state: emptyReference(),
-        setControlDirection: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        scheduleData: emptyReference()
-    };
+    object!: MobileThermostatV2Widget["object"];
 
-    constructor(config?: Partial<MobileThermostatV2Widget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileThermostatV2Widget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileThermostatV2Widget, "icon" | "noOfFanSpeeds" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileContactSensorWidget {
-    id = createMobileId();
+    id!: number;
     type: "CONTACT_SENSOR" = "CONTACT_SENSOR";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Lock;
-    label = "";
+    label!: string;
     offIndication = "Wyłączone";
     reverseState = false;
     onIndication = "Włączone";
-    object = emptyContactSensorComponent().object;
+    object!: MobileContactSensorComponent["object"];
 
-    constructor(config?: Partial<MobileContactSensorWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileContactSensorWidget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileContactSensorWidget, "icon" | "offIndication" | "onIndication" | "reverseState" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileContactSensorDoubleWidget {
-    id = createMobileId();
+    id!: number;
     type: "CONTACT_SENSOR_DOUBLE" = "CONTACT_SENSOR_DOUBLE";
     dtoId: string | null = null;
-    componentLeft = emptyContactSensorComponent();
-    componentRight = emptyContactSensorComponent();
+    componentLeft!: MobileContactSensorComponent;
+    componentRight!: MobileContactSensorComponent;
 
-    constructor(config?: Partial<MobileContactSensorDoubleWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileContactSensorDoubleWidget, "id" | "componentLeft" | "componentRight">,
+        optional: Partial<Pick<MobileContactSensorDoubleWidget, "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileSliderWidget {
-    id = createMobileId();
+    id!: number;
     type: "SLIDER" = "SLIDER";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.VolumeCircle;
-    label = "";
+    label!: string;
     unit: MobileUnit = "UNKNOWN";
     min = 0;
     max = 1;
     precision = 2;
-    object: MobileSliderWidget["object"] = {
-        setValueAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        value: emptyReference(),
-        clickAction: emptyAction("CLICK", "ATTRIBUTE", "1")
-    };
+    object!: MobileSliderWidget["object"];
 
-    constructor(config?: Partial<MobileSliderWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileSliderWidget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileSliderWidget, "icon" | "unit" | "min" | "max" | "precision" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileCoolMasterWidget {
-    id = createMobileId();
+    id!: number;
     type: "COOL_MASTER" = "COOL_MASTER";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Ac;
-    label = "";
+    label!: string;
     minTargetTemp = 10;
     maxTargetTemp = 30;
-    object: MobileCoolMasterWidget["object"] = {
-        louverPosition: emptyReference(),
-        ambientTemp: emptyReference(),
-        failureCode: emptyReference(),
-        setFanSpeedAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        targetTemp: emptyReference(),
-        supportedFanSpeeds: emptyReference(),
-        supportedModes: emptyReference(),
-        turnOnAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        setModeAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        supportedLouverPositions: emptyReference(),
-        mode: emptyReference(),
-        setSupportedLouverPositions: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        setSupportedFanSpeeds: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        turnOffAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        switchModeAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        uids: emptyReference(),
-        setLouverPosition: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        setTargetTempAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        setSupportedModes: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        setStateAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        state: emptyReference(),
-        fanSpeed: emptyReference(),
-        coolMasterID: emptyReference(),
-        status: emptyReference()
-    };
+    object!: MobileCoolMasterWidget["object"];
 
-    constructor(config?: Partial<MobileCoolMasterWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileCoolMasterWidget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileCoolMasterWidget, "icon" | "minTargetTemp" | "maxTargetTemp" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileIntercomWidget {
-    id = createMobileId();
+    id!: number;
     type: "INTERCOM" = "INTERCOM";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Intercom;
-    label = "";
+    label!: string;
     componentIntercomButton1: MobileIntercomButton & { type: "INTERCOM_BUTTON_1" } = {
         label: "",
         type: "INTERCOM_BUTTON_1" as const,
@@ -1482,35 +1430,28 @@ export class MobileIntercomWidget {
         rowId: 0,
         enabled: true
     };
-    intercomSipNumber = "";
+    intercomSipNumber!: string;
 
-    constructor(config?: Partial<MobileIntercomWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileIntercomWidget, "id" | "label" | "intercomSipNumber">,
+        optional: Partial<Pick<MobileIntercomWidget, "icon" | "componentIntercomButton1" | "componentIntercomButton2" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
 
 export class MobileAudioRemoteControlWidget {
-    id = createMobileId();
+    id!: number;
     type: "AUDIO_REMOTE_CONTROL" = "AUDIO_REMOTE_CONTROL";
     dtoId: string | null = null;
     icon: MobileIcon = MobileIcons.Speaker;
-    label = "";
-    object: MobileAudioRemoteControlWidget["object"] = {
-        onAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        offAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        muteAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        playAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        volumeUpAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        pauseAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        artistName: emptyReference(),
-        previousAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        nextAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        trackTitle: emptyReference(),
-        volumeDownAction: emptyAction("CLICK", "ATTRIBUTE", "1"),
-        initAction: emptyAction("CLICK", "ATTRIBUTE", "1")
-    };
+    label!: string;
+    object!: MobileAudioRemoteControlWidget["object"];
 
-    constructor(config?: Partial<MobileAudioRemoteControlWidget>) {
-        Object.assign(this, config);
+    constructor(
+        required: Pick<MobileAudioRemoteControlWidget, "id" | "label" | "object">,
+        optional: Partial<Pick<MobileAudioRemoteControlWidget, "icon" | "dtoId">> = {}
+    ) {
+        Object.assign(this, required, optional);
     }
 }
