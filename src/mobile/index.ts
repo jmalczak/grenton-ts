@@ -30,50 +30,25 @@ export type MobileWidgetType =
 export type MobileValueType = "FLOAT" | "STRING";
 export type MobileUnit = "DEGREE" | "PERCENT" | "UNKNOWN";
 
-export const MobileIcons = {
-    Default: "default",
-    Home1: "home_1",
-    Dimmer: "dimmer",
-    Blinds: "blinds",
-    Bulb: "bulb",
-    Value: "value",
-    ValueDouble: "value_double",
-    Lock: "lock",
-    DoorClosed: "door_closed",
-    Camera: "camera",
-    Scheduler: "scheduler",
-    Text: "text",
-    Multisensor: "multisensor",
-    Tv: "tv",
-    Temperature: "temperature",
-    VolumeCircle: "volume_circle",
-    Ac: "ac",
-    Intercom: "intercom",
-    Speaker: "speaker"
-} as const;
+import {
+    MobileBackgroundImage,
+    MobileBackgroundImages,
+    MobileColor,
+    MobileColors,
+    MobileIcon,
+    MobileIcons,
+    MobileInterfaceIcon,
+    MobileInterfaceIcons
+} from "./assets";
 
-export type MobileIcon = typeof MobileIcons[keyof typeof MobileIcons];
-
-export const MobileBackgroundImages = {
-    LockDoor: "lock_door",
-    Holiday: "holiday",
-    Gate2: "gate_2"
-} as const;
-
-export type MobileBackgroundImage = typeof MobileBackgroundImages[keyof typeof MobileBackgroundImages];
-
-export const MobileColors = {
-    Blue: "blue"
-} as const;
-
-export type MobileColor = typeof MobileColors[keyof typeof MobileColors];
+export * from "./assets";
 
 
 export interface MobileInterface {
     pages: MobilePage[];
     pushNotifications: null;
     lightLogoPath: string | null;
-    icon: MobileIcon;
+    icon: MobileInterfaceIcon;
     blockCloud: boolean;
     theme: MobileColor;
     id: string;
@@ -802,20 +777,19 @@ export class MobileBistableButtonComponent implements MobileBistableButton {
     image: MobileBistableButton["image"];
     offIndication: string;
     onIndication: string;
-    indication?: string;
+    indication = "ON_OFF";
 
     constructor(
         public label: string,
         public state: MobileObjectReference,
         public actionOn: MobileAction,
         public actionOff: MobileAction,
-        config: Partial<Pick<MobileBistableButton, "rowId" | "image" | "offIndication" | "onIndication" | "indication">> = {}
+        config: Partial<Pick<MobileBistableButton, "rowId" | "image" | "offIndication" | "onIndication">> = {}
     ) {
         this.rowId = config.rowId ?? 0;
         this.image = config.image ?? MobileIcons.Bulb;
         this.offIndication = config.offIndication ?? "Off";
         this.onIndication = config.onIndication ?? "On";
-        if (config.indication !== undefined) this.indication = config.indication;
     }
 }
 
@@ -980,7 +954,7 @@ export class MobileInterface {
     pages: MobilePage[] = [];
     pushNotifications: null = null;
     lightLogoPath: string | null = null;
-    icon: MobileIcon = MobileIcons.Home1;
+    icon: MobileInterfaceIcon = MobileInterfaceIcons.Home1;
     blockCloud = false;
     theme: MobileColor = MobileColors.Blue;
     id = "";
