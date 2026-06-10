@@ -621,9 +621,9 @@ export class MobileObject {
     private readonly cluName: string;
     private readonly objectName: string;
 
-    constructor(clu: MobileNamed, object: MobileNamed) {
-        this.cluName = clu.name;
-        this.objectName = object.name;
+    constructor(required: { clu: MobileNamed; object: MobileNamed }) {
+        this.cluName = required.clu.name;
+        this.objectName = required.object.name;
     }
 
     target(index: MobileTargetIndex = null): MobileTarget {
@@ -651,12 +651,11 @@ export class MobileObject {
 // (the script name is carried in `objectName`, with `callType: "SCRIPT"`).
 export class MobileScript {
     private readonly cluName: string;
+    name: string;
 
-    constructor(
-        clu: MobileNamed,
-        public name: string
-    ) {
-        this.cluName = clu.name;
+    constructor(required: { clu: MobileNamed; name: string }) {
+        this.cluName = required.clu.name;
+        this.name = required.name;
     }
 
     action(type: MobileActionType = MobileActionTypes.Click): MobileAction {

@@ -5,9 +5,9 @@ import {
     MobileNamed,
     MobileObjectReference,
     MobileTarget
-} from "../../index";
+} from "./index";
 
-// Structural stand-in for the CLU-side DOut wrapper (io-module-din-8 fv02_02):
+// Structural stand-in for the CLU-side DOut wrapper (io-module-din-8):
 // just enough members to accept DOut-backed registry entries and reject other
 // device types, without referencing CLU wrapper code from the mobile module.
 export interface DOutLike {
@@ -17,7 +17,7 @@ export interface DOutLike {
     readonly value: boolean;
 }
 
-// Feature id of the DOUT object (io-module-din-8 fv02_02), same numbering as
+// Feature id of the DOUT object (io-module-din-8), same numbering as
 // PropertyType in the CLU-side wrapper.
 const ValueFeature = 0;
 
@@ -27,9 +27,9 @@ export class MobileDOut {
     private readonly cluName: string;
     private readonly objectName: string;
 
-    constructor(clu: MobileNamed, dout: MobileNamed<DOutLike>) {
-        this.cluName = clu.name;
-        this.objectName = dout.name;
+    constructor(required: { clu: MobileNamed; dout: MobileNamed<DOutLike> }) {
+        this.cluName = required.clu.name;
+        this.objectName = required.dout.name;
     }
 
     // Reference to the Value feature - displays the current output state.
