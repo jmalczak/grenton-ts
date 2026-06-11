@@ -57,8 +57,6 @@ interface IDimm {
     addOnOutOfRange: (callback: () => void) => void
     /** Podaje aktualną wartość wyjścia (0.0 - 1.0) */
     value: number
-    /** Ustawia wartość wyjścia */
-    setValue: (value: number) => void
     /** Wartość opóźnienia czasu rozjaśniania lub ściemniania wyjścia (w ms) */
     rampTime: number
     /** Minimalna wartość jaka może przyjąć Value */
@@ -131,7 +129,6 @@ class Dimm implements IDimm {
 
     get value(): number { return this.raw.get(PropertyType.Value); }
     set value(val: number) { this.raw.set(PropertyType.Value, val); }
-    setValue(value: number): void { this.value = value; }
     get rampTime(): number { return this.raw.get(PropertyType.RampTime); }
     set rampTime(val: number) { this.raw.set(PropertyType.RampTime, val); }
     get minValue(): number { return this.raw.get(PropertyType.MinValue); }
@@ -185,7 +182,6 @@ class DimmRemote implements IDimm {
         const cmd = rawExecutionBuilderFactory(this.objectName).set().addParameter(PropertyType.Value).addParameter(val).build();
         this.gate.runScript(cmd!);
     }
-    setValue(value: number): void { this.value = value; }
     get rampTime(): number {
         const cmd = rawExecutionBuilderFactory(this.objectName).get().addParameter(PropertyType.RampTime).build();
         return this.gate.runScript(cmd!);

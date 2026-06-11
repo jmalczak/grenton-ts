@@ -50,8 +50,6 @@ interface IZwaveDimmer {
     addOnOutOfRange: (callback: () => void) => void
     /** Podaje aktualną wartość wejścia */
     value: number
-    /** Ustawia wartość ściemniacza */
-    setValue: (value: number) => void
     /** Minimalna wartość jaka może przyjąć Value */
     minValue: number
     /** Maksymalna wartość ściemniacza w procentach */
@@ -118,7 +116,6 @@ class ZwaveDimmer implements IZwaveDimmer {
 
     get value(): number { return this.raw.get(PropertyType.Value); }
     set value(val: number) { this.raw.set(PropertyType.Value, val); }
-    setValue(value: number): void { this.value = value; }
     get minValue(): number { return this.raw.get(PropertyType.MinValue); }
     set minValue(val: number) { this.raw.set(PropertyType.MinValue, val); }
     get maxValue(): number { return this.raw.get(PropertyType.MaxValue); }
@@ -169,7 +166,6 @@ class ZwaveDimmerRemote implements IZwaveDimmer {
         const cmd = rawExecutionBuilderFactory(this.objectName).set().addParameter(PropertyType.Value).addParameter(val).build();
         this.gate.runScript(cmd!);
     }
-    setValue(value: number): void { this.value = value; }
     get minValue(): number {
         const cmd = rawExecutionBuilderFactory(this.objectName).get().addParameter(PropertyType.MinValue).build();
         return this.gate.runScript(cmd!);
