@@ -1,7 +1,7 @@
 // Script: switches on light at 22:00 and switches it off at 06:00 every day.
 
 import * as dOut from "../../io-module-din-8/fv02_02/dout"
-import * as cal from "../../clu_old/calendar/v1/calendar"
+import * as cal from "../../clu-zwave-2/fv515_03/calendar"
 import { CluZWave2, CluZWave2Raw } from "../../clu-zwave-2/fv515_03/clu-zwave-2"
 
 
